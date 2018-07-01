@@ -97,8 +97,8 @@ export class GitGitGadget {
         return [options, allowedUsers];
     }
 
-    protected readonly workDir: string;
-    protected readonly notes: GitNotes;
+    public readonly workDir: string;
+    public readonly notes: GitNotes;
     protected options: IGitGitGadgetOptions;
     protected allowedUsers: Set<string>;
 
@@ -200,6 +200,11 @@ export class GitGitGadget {
             new Date(),
         );
         return coverMid;
+    }
+
+    public async getPRMetadata(url: string):
+        Promise<IPatchSeriesMetadata | undefined> {
+        return await this.notes.get<IPatchSeriesMetadata>(url);
     }
 
     protected async updateNotesAndPullRef(pullRequestNumber: number,
