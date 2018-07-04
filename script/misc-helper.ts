@@ -1,10 +1,11 @@
 import commander = require("commander");
 import { CIHelper } from "../lib/ci-helper";
+import { gitConfig } from "../lib/git";
 import { GitGitGadget, IGitGitGadgetOptions } from "../lib/gitgitgadget";
 import { GitHubGlue } from "../lib/github-glue";
 
 commander.version("1.0.0")
-    .usage("[options] ( update-open-prs )")
+    .usage("[options] ( update-open-prs | lookup-upstream-commit )")
     .description("Command-line helper for GitGitGadget")
     .option("-w, --work-dir [directory]",
         "Use a different working directory than '.'", ".")
@@ -12,6 +13,16 @@ commander.version("1.0.0")
 
 if (commander.args.length === 0) {
     commander.help();
+}
+
+async function getWorkDir(): Promise<string> {
+    if (!commander.workDir) {
+        commander.workDir = await gitConfig("gitgitgadget.workDir");
+        if (!commander.workDir) {
+            throw new Error(`Could not determine gitgitgadget.workDir`);
+        }
+    }
+    return commander.workDir;
 }
 
 (async () => {
@@ -75,6 +86,16 @@ if (commander.args.length === 0) {
                 JSON.stringify(options, null, 4)}`);
             // await notes.set("", options, true);
         }
+    } else if (command === "lookup-upstream-commit") {
+        if (commander.args.length !== 2) {
+            process.stderr.write(`${command}: needs one argument\n`);
+            process.exit(1);
+        }
+        const commit = commander.args[1];
+
+        const ci = new CIHelper(await getWorkDir());
+        const upstreamCommit = await ci.identifyUpstreamCommit(commit);
+        console.log(`Upstream commit for ${commit}: ${upstreamCommit}`);
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
