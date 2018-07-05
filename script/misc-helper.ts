@@ -1,11 +1,14 @@
 import commander = require("commander");
 import { CIHelper } from "../lib/ci-helper";
 import { gitConfig } from "../lib/git";
+import { GitNotes } from "../lib/git-notes";
 import { GitGitGadget, IGitGitGadgetOptions } from "../lib/gitgitgadget";
 import { GitHubGlue } from "../lib/github-glue";
+import { IPatchSeriesMetadata } from "../lib/patch-series-metadata";
 
 commander.version("1.0.0")
-    .usage("[options] ( update-open-prs | lookup-upstream-commit )")
+    .usage("[options] ( update-open-prs | inspect-pr | "
+        + "lookup-upstream-commit )")
     .description("Command-line helper for GitGitGadget")
     .option("-w, --work-dir [directory]",
         "Use a different working directory than '.'", ".")
@@ -23,6 +26,10 @@ async function getWorkDir(): Promise<string> {
         }
     }
     return commander.workDir;
+}
+
+async function getNotes(): Promise<GitNotes> {
+    return new GitNotes(await getWorkDir());
 }
 
 (async () => {
@@ -86,6 +93,16 @@ async function getWorkDir(): Promise<string> {
                 JSON.stringify(options, null, 4)}`);
             // await notes.set("", options, true);
         }
+    } else if (command === "inspect-pr") {
+        if (commander.args.length !== 2) {
+            process.stderr.write(`${command}: needs one argument\n`);
+            process.exit(1);
+        }
+        const pullRequestURL = commander.args[1];
+        const notes = await getNotes();
+
+        const data = await notes.get<IPatchSeriesMetadata>(pullRequestURL);
+        console.log(`${pullRequestURL}:\n\n${JSON.stringify(data, null, 4)}`);
     } else if (command === "lookup-upstream-commit") {
         if (commander.args.length !== 2) {
             process.stderr.write(`${command}: needs one argument\n`);
