@@ -11,15 +11,39 @@ import { MailCommitMapping } from "./mail-commit-mapping";
  */
 export class CIHelper {
     public readonly workDir?: string;
-    protected readonly notes: GitNotes;
     protected readonly mail2commit: MailCommitMapping;
+    protected readonly notes: GitNotes;
     private mail2CommitMapUpdated: boolean;
+    private gggNotesUpdated: boolean;
 
     public constructor(workDir?: string) {
         this.workDir = workDir;
         this.notes = new GitNotes(workDir);
         this.mail2commit = new MailCommitMapping(this.notes.workDir);
         this.mail2CommitMapUpdated = false;
+        this.gggNotesUpdated = false;
+    }
+
+    /*
+     * Given an commit that was contributed as a patch via GitGitGadget (i.e.
+     * a commit with a Message-ID recorded in `refs/notes/gitgitgadget`),
+     * identify the commit (if any) in `git.git`.
+     */
+    public async identifyUpstreamCommit(originalCommit: string):
+        Promise<string | undefined> {
+        await this.maybeUpdateMail2CommitMap();
+        const messageId = await
+            this.getMessageIdForOriginalCommit(originalCommit);
+        if (!messageId) {
+            return undefined;
+        }
+        return await this.mail2commit.getGitGitCommitForMessageId(messageId);
+    }
+
+    public async getMessageIdForOriginalCommit(commit: string):
+        Promise<string | undefined> {
+        await this.maybeUpdateGGGNotes();
+        return await this.notes.getLastCommitNote(commit);
     }
 
     /*
@@ -67,6 +91,13 @@ export class CIHelper {
             if (!match) {
                 return commit;
             }
+        }
+    }
+
+    private async maybeUpdateGGGNotes(): Promise<void> {
+        if (!this.gggNotesUpdated) {
+            await this.notes.update();
+            this.gggNotesUpdated = true;
         }
     }
 
