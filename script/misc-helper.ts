@@ -113,6 +113,43 @@ async function getNotes(): Promise<GitNotes> {
         const ci = new CIHelper(await getWorkDir());
         const upstreamCommit = await ci.identifyUpstreamCommit(commit);
         console.log(`Upstream commit for ${commit}: ${upstreamCommit}`);
+    } else if (command === "set-previous-iteration") {
+        if (commander.args.length !== 9) {
+            process.stderr.write(`${command}: needs PR URL, iteration, ${
+                ""}cover-letter Message ID, latest tag, ${
+                ""}base commit, base label, head commit, head label\n`);
+            process.exit(1);
+        }
+        const pullRequestURL = commander.args[1];
+        const iteration = parseInt(commander.args[2], 10);
+        const coverLetterMessageId = commander.args[3];
+        const latestTag = commander.args[4];
+        const baseCommit = commander.args[5];
+        const baseLabel = commander.args[6];
+        const headCommit = commander.args[7];
+        const headLabel = commander.args[8];
+
+        const notes = await getNotes();
+        // await notes.update();
+
+        const data = await notes.get<IPatchSeriesMetadata>(pullRequestURL);
+        if (data !== undefined) {
+            process.stderr.write(`Found existing data for ${pullRequestURL}: ${
+                JSON.stringify(data, null, 4)}`);
+            process.exit(1);
+        }
+        const newData = {
+            baseCommit,
+            baseLabel,
+            coverLetterMessageId,
+            headCommit,
+            headLabel,
+            iteration,
+            latestTag,
+            pullRequestURL,
+        } as IPatchSeriesMetadata;
+        console.log(`data: ${JSON.stringify(newData, null, 4)}`);
+        await notes.set(pullRequestURL, newData);
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
