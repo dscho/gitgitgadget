@@ -8,7 +8,8 @@ import { IPatchSeriesMetadata } from "../lib/patch-series-metadata";
 
 commander.version("1.0.0")
     .usage("[options] ( update-open-prs | inspect-pr | "
-        + "lookup-upstream-commit )")
+        + "lookup-upstream-commit | "
+        + "annotate-commit <pr-number> <original> <git.git> )")
     .description("Command-line helper for GitGitGadget")
     .option("-w, --work-dir [directory]",
         "Use a different working directory than '.'", ".")
@@ -150,6 +151,23 @@ async function getNotes(): Promise<GitNotes> {
         } as IPatchSeriesMetadata;
         console.log(`data: ${JSON.stringify(newData, null, 4)}`);
         await notes.set(pullRequestURL, newData);
+    } else if (command === "annotate-commit") {
+        if (commander.args.length !== 4) {
+            process.stderr.write(`${command}: needs 3 parameters: ${
+                ""}PR number, original and git.git commit\n`);
+            process.exit(1);
+        }
+
+        const prNumber = commander.args[1];
+        const originalCommit = commander.args[2];
+        const gitGitCommit = commander.args[3];
+
+        const workDir = await getWorkDir();
+        const branchName = `refs/pull/${prNumber}/head`;
+        const glue = new GitHubGlue(workDir);
+        const id = await glue.annotateCommit(branchName,
+            originalCommit, gitGitCommit);
+        console.log(`Created check with id ${id}`);
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
