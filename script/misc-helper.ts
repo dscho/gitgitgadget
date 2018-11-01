@@ -168,6 +168,20 @@ async function getNotes(): Promise<GitNotes> {
         const id = await glue.annotateCommit(branchName,
             originalCommit, gitGitCommit);
         console.log(`Created check with id ${id}`);
+    } else if (command === "identify-merge-commit") {
+        if (commander.args.length !== 3) {
+            process.stderr.write(`${command}: needs 2 parameters: ${
+                ""}upstream branch and tip commit\n`);
+            process.exit(1);
+        }
+        const upstreamBranch = commander.args[1];
+        const commit = commander.args[2];
+
+        const workDir = await getWorkDir();
+        const ci = new CIHelper(workDir);
+
+        const result = await ci.identifyMergeCommit(upstreamBranch, commit);
+        console.log(result);
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
