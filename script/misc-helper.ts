@@ -109,6 +109,27 @@ async function getNotes(): Promise<GitNotes> {
 
         const result = await ci.updateCommitMappings();
         console.log(`Updated notes: ${result}`);
+    } else if (command === "handle-open-prs") {
+        if (commander.args.length !== 1) {
+            process.stderr.write(`${command}: does not accept arguments\n`);
+            process.exit(1);
+        }
+
+        const gitGitGadget = await GitGitGadget.get(commander.workDir);
+        const notes = gitGitGadget.notes;
+        if (!notes.workDir) {
+            throw new Error(`GitNotes without a workDir?`);
+        }
+        const options = await notes.get<IGitGitGadgetOptions>("");
+        if (!options) {
+            throw new Error("No GitGitGadget options?");
+        }
+        if (!options.openPRs) {
+            throw new Error("No open PRs?");
+        }
+        const ci = new CIHelper(notes.workDir);
+        const result = await ci.handleOpenPRs();
+        console.log(`Updated notes: ${result}`);
     } else if (command === "inspect-pr") {
         if (commander.args.length !== 2) {
             process.stderr.write(`${command}: needs one argument\n`);
