@@ -226,7 +226,7 @@ async function getNotes(): Promise<GitNotes> {
 
         const pullRequestURL =
             `https://github.com/gitgitgadget/git/pull/${prNumber}`;
-        const workDir = await getWorkDir();
+        const workDir = await getGitGitWorkDir();
         const ci = new CIHelper(workDir);
 
         console.log(toJSON(await ci.getPRMeta(pullRequestURL)));
