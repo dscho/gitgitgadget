@@ -152,6 +152,18 @@ async function getNotes(): Promise<GitNotes> {
         } as IPatchSeriesMetadata;
         console.log(`data: ${JSON.stringify(newData, null, 4)}`);
         await notes.set(pullRequestURL, newData);
+    } else if (command === "update-commit-mapping") {
+        if (commander.args.length !== 2) {
+            process.stderr.write(`${command}: needs Message-ID\n`);
+            process.exit(1);
+        }
+
+        const messageID = commander.args[1];
+
+        const workDir = await getWorkDir();
+        const ci = new CIHelper(workDir);
+        const result = await ci.updateCommitMapping(messageID);
+        console.log(`Result: ${result}`);
     } else if (command === "annotate-commit") {
         if (commander.args.length !== 4) {
             process.stderr.write(`${command}: needs 3 parameters: ${
