@@ -31,7 +31,7 @@ async function getGitGitWorkDir(): Promise<string> {
 }
 
 async function getNotes(): Promise<GitNotes> {
-    return new GitNotes(await getWorkDir());
+    return new GitNotes(await getGitGitWorkDir());
 }
 
 (async () => {
