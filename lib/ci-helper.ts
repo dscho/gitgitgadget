@@ -15,8 +15,8 @@ import { IPatchSeriesMetadata } from "./patch-series-metadata";
  */
 export class CIHelper {
     public readonly workDir?: string;
+    public readonly notes: GitNotes;
     protected readonly mail2commit: MailCommitMapping;
-    protected readonly notes: GitNotes;
     protected readonly github: GitHubGlue;
     protected testing: boolean;
     private mail2CommitMapUpdated: boolean;
@@ -81,19 +81,15 @@ export class CIHelper {
         await this.notes.set(messageID, mailMeta, true);
 
         if (!this.testing && mailMeta.pullRequestURL) {
-            const [, , nr] = GitGitGadget
-                .parsePullRequestURL(mailMeta.pullRequestURL);
-            const branch = `refs/pull/${nr}/head`;
-            await this.github.annotateCommit(branch,
-                mailMeta.originalCommit, upstreamCommit);
+            await this.github.annotateCommit(mailMeta.originalCommit,
+                                             upstreamCommit);
         }
 
         return true;
     }
 
     public async updateCommitMappings(): Promise<boolean> {
-        await this.maybeUpdateGGGNotes();
-        const options = await this.notes.get<IGitGitGadgetOptions>("");
+        const options = await this.getGitGitGadgetOptions();
         if (!options) {
             throw new Error(`There were no GitGitGadget options to be found?`);
         }
@@ -120,8 +116,7 @@ export class CIHelper {
      * be pushed)
      */
     public async handleOpenPRs(): Promise<boolean> {
-        await this.maybeUpdateGGGNotes();
-        const options = await this.notes.get<IGitGitGadgetOptions>("");
+        const options = await this.getGitGitGadgetOptions();
         if (!options) {
             throw new Error(`There were no GitGitGadget options to be found?`);
         }
@@ -162,17 +157,29 @@ export class CIHelper {
      * user, close the PR, etc).
      *
      * @param {string} pullRequestURL the PR to handle
-     * @param {IGitGitGadget} options the GitGitGadget options which may need to
-     * be updated.
+     * @param {IGitGitGadgetOptions} options the GitGitGadget options which may
+     * need to be updated.
+     *
      * @returns two booleans; the first is `true` if there were updates that
      * require `refs/notes/gitgitgadget` to be pushed. The second is `true`
      * if the `options` were updated.
      */
     public async handlePR(pullRequestURL: string,
-                          options: IGitGitGadgetOptions):
+                          options?: IGitGitGadgetOptions):
         Promise<[boolean, boolean]> {
         await this.maybeUpdateGGGNotes();
         await this.maybeUpdateMail2CommitMap();
+
+        let updateOptionsInRef: boolean;
+        if (options) {
+            updateOptionsInRef = false;
+        } else {
+            options = await this.getGitGitGadgetOptions();
+            if (!options) {
+                throw new Error("GitGitGadgetOptions not set?!?!?");
+            }
+            updateOptionsInRef = true;
+        }
 
         const prMeta =
             await this.notes.get<IPatchSeriesMetadata>(pullRequestURL);
@@ -284,6 +291,10 @@ export class CIHelper {
             await this.notes.set(pullRequestURL, prMeta, true);
         }
 
+        if (optionsUpdated && updateOptionsInRef) {
+            await this.notes.set("", options, true);
+        }
+
         return [notesUpdated, optionsUpdated];
     }
 
@@ -348,7 +359,16 @@ export class CIHelper {
         }
     }
 
-    public async getPRMeta(pullRequestURL: string):
+    public async getGitGitGadgetOptions(): Promise<IGitGitGadgetOptions> {
+        await this.maybeUpdateGGGNotes();
+        const options = this.notes.get<IGitGitGadgetOptions>("");
+        if (options === undefined) {
+            throw new Error("No GitGitGadgetOptions?!?!?");
+        }
+        return options;
+    }
+
+    public async getPRMetadata(pullRequestURL: string):
         Promise<IPatchSeriesMetadata | undefined> {
         await this.maybeUpdateGGGNotes();
         return this.notes.get<IPatchSeriesMetadata>(pullRequestURL);

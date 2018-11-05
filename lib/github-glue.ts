@@ -18,9 +18,8 @@ export class GitHubGlue {
         this.workDir = workDir;
     }
 
-    public async annotateCommit(branchName: string,
-                                originalCommit: string, gitGitCommit: string):
-        Promise<string> {
+    public async annotateCommit(originalCommit: string, gitGitCommit: string):
+        Promise<number> {
         const output = await git([
             "show", "-s", "--format=%h %cI", gitGitCommit,
         ], { workDir: this.workDir });
@@ -36,7 +35,6 @@ export class GitHubGlue {
             completed_at: completedAt,
             conclusion: "success",
             details_url: url,
-            head_branch: branchName,
             head_sha: originalCommit,
             name: "upstream commit",
             output: {
@@ -88,7 +86,7 @@ export class GitHubGlue {
     }
 
     public async closePR(pullRequestURL: string, viaMergeCommit: string):
-        Promise<string> {
+        Promise<number> {
         const [owner, repo, prNo] =
             GitGitGadget.parsePullRequestURL(pullRequestURL);
 

@@ -202,11 +202,6 @@ export class GitGitGadget {
         return coverMid;
     }
 
-    public async getPRMetadata(url: string):
-        Promise<IPatchSeriesMetadata | undefined> {
-        return await this.notes.get<IPatchSeriesMetadata>(url);
-    }
-
     protected async updateNotesAndPullRef(pullRequestNumber: number,
                                           additionalRef?: string):
         Promise<string> {
