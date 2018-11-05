@@ -20,14 +20,14 @@ if (commander.args.length === 0) {
     commander.help();
 }
 
-async function getWorkDir(): Promise<string> {
-    if (!commander.workDir) {
-        commander.workDir = await gitConfig("gitgitgadget.workDir");
-        if (!commander.workDir) {
+async function getGitGitWorkDir(): Promise<string> {
+    if (!commander.gitGitWorkDir) {
+        commander.gitGitWorkDir = await gitConfig("gitgitgadget.workDir");
+        if (!commander.gitGitWorkDir) {
             throw new Error(`Could not determine gitgitgadget.workDir`);
         }
     }
-    return commander.workDir;
+    return commander.gitGitWorkDir;
 }
 
 async function getNotes(): Promise<GitNotes> {
