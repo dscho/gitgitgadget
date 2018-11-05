@@ -217,6 +217,19 @@ async function getNotes(): Promise<GitNotes> {
         const notes = new GitNotes(workDir);
 
         console.log(toJSON(await notes.get(messageID)));
+    } else if (command === "get-pr-meta") {
+        if (commander.args.length !== 2) {
+            process.stderr.write(`${command}: need a Pull Request number\n`);
+            process.exit(1);
+        }
+        const prNumber = commander.args[1];
+
+        const pullRequestURL =
+            `https://github.com/gitgitgadget/git/pull/${prNumber}`;
+        const workDir = await getWorkDir();
+        const ci = new CIHelper(workDir);
+
+        console.log(toJSON(await ci.getPRMeta(pullRequestURL)));
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
