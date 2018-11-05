@@ -113,7 +113,7 @@ async function getNotes(): Promise<GitNotes> {
         }
         const commit = commander.args[1];
 
-        const ci = new CIHelper(await getWorkDir());
+        const ci = new CIHelper(await getGitGitWorkDir());
         const upstreamCommit = await ci.identifyUpstreamCommit(commit);
         console.log(`Upstream commit for ${commit}: ${upstreamCommit}`);
     } else if (command === "set-previous-iteration") {
