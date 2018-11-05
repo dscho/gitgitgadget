@@ -191,7 +191,7 @@ async function getNotes(): Promise<GitNotes> {
         const upstreamBranch = commander.args[1];
         const commit = commander.args[2];
 
-        const workDir = await getWorkDir();
+        const workDir = await getGitGitWorkDir();
         const ci = new CIHelper(workDir);
 
         const result = await ci.identifyMergeCommit(upstreamBranch, commit);
