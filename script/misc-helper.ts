@@ -200,6 +200,6 @@ async function getNotes(): Promise<GitNotes> {
         process.exit(1);
     }
 })().catch((reason) => {
-    process.stderr.write(`Caught error ${reason}:\n${new Error().stack}\n`);
+    process.stderr.write(`Caught error ${reason}:\n${reason.stack}\n`);
     process.exit(1);
 });
