@@ -43,11 +43,11 @@ async function getNotes(): Promise<GitNotes> {
         }
 
         const gitGitGadget = await GitGitGadget.get(commander.workDir);
-        const gitHub = new GitHubGlue(commander.workDir);
         const notes = gitGitGadget.notes;
         if (!notes.workDir) {
             throw new Error(`GitNotes without a workDir?`);
         }
+        const gitHub = new GitHubGlue(notes.workDir);
         const ci = new CIHelper(notes.workDir);
 
         const options = await notes.get<IGitGitGadgetOptions>("");
