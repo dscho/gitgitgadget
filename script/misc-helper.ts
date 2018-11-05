@@ -4,6 +4,7 @@ import { gitConfig } from "../lib/git";
 import { GitNotes } from "../lib/git-notes";
 import { GitGitGadget, IGitGitGadgetOptions } from "../lib/gitgitgadget";
 import { GitHubGlue } from "../lib/github-glue";
+import { toJSON } from "../lib/json-util";
 import { IPatchSeriesMetadata } from "../lib/patch-series-metadata";
 
 commander.version("1.0.0")
@@ -195,6 +196,16 @@ async function getNotes(): Promise<GitNotes> {
 
         const result = await ci.identifyMergeCommit(upstreamBranch, commit);
         console.log(result);
+    } else if (command === "get-gitgitgadget-options") {
+        if (commander.args.length !== 1) {
+            process.stderr.write(`${command}: no argument accepted\n`);
+            process.exit(1);
+        }
+
+        const workDir = await getWorkDir();
+        const notes = new GitNotes(workDir);
+
+        console.log(toJSON(await notes.get("")));
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
