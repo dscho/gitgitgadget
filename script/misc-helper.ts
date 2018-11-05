@@ -93,7 +93,7 @@ async function getNotes(): Promise<GitNotes> {
         if (optionsChanged) {
             console.log(`Changed options:\n${
                 JSON.stringify(options, null, 4)}`);
-            // await notes.set("", options, true);
+            await notes.set("", options, true);
         }
     } else if (command === "inspect-pr") {
         if (commander.args.length !== 2) {
