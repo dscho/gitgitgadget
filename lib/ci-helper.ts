@@ -264,13 +264,18 @@ export class CIHelper {
 
         let optionsUpdated = false;
         if (closePR) {
-            delete options.openPRs![pullRequestURL];
-            // Remove items from activeMessageIDs
-            for (const rev of await this.getOriginalCommitsForPR(prMeta)) {
-                const messageID = await this.notes.getLastCommitNote(rev);
-                delete options.activeMessageIDs![messageID];
+            if (options.openPRs) {
+                delete options.openPRs[pullRequestURL];
+                optionsUpdated = true;
             }
-            optionsUpdated = true;
+            // Remove items from activeMessageIDs
+            if (options.activeMessageIDs) {
+                for (const rev of await this.getOriginalCommitsForPR(prMeta)) {
+                    const messageID = await this.notes.getLastCommitNote(rev);
+                    delete options.activeMessageIDs[messageID];
+                }
+                optionsUpdated = true;
+            }
 
             await this.github.closePR(pullRequestURL, closePR);
         }
