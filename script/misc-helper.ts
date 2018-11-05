@@ -202,7 +202,7 @@ async function getNotes(): Promise<GitNotes> {
             process.exit(1);
         }
 
-        const workDir = await getWorkDir();
+        const workDir = await getGitGitWorkDir();
         const notes = new GitNotes(workDir);
 
         console.log(toJSON(await notes.get("")));
