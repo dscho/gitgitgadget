@@ -176,7 +176,7 @@ async function getNotes(): Promise<GitNotes> {
         const originalCommit = commander.args[2];
         const gitGitCommit = commander.args[3];
 
-        const workDir = await getWorkDir();
+        const workDir = await getGitGitWorkDir();
         const branchName = `refs/pull/${prNumber}/head`;
         const glue = new GitHubGlue(workDir);
         const id = await glue.annotateCommit(branchName,
