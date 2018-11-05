@@ -206,6 +206,17 @@ async function getNotes(): Promise<GitNotes> {
         const notes = new GitNotes(workDir);
 
         console.log(toJSON(await notes.get("")));
+    } else if (command === "get-mail-meta") {
+        if (commander.args.length !== 2) {
+            process.stderr.write(`${command}: need a Message-ID\n`);
+            process.exit(1);
+        }
+        const messageID = commander.args[1];
+
+        const workDir = await getWorkDir();
+        const notes = new GitNotes(workDir);
+
+        console.log(toJSON(await notes.get(messageID)));
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
