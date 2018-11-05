@@ -161,7 +161,7 @@ async function getNotes(): Promise<GitNotes> {
 
         const messageID = commander.args[1];
 
-        const workDir = await getWorkDir();
+        const workDir = await getGitGitWorkDir();
         const ci = new CIHelper(workDir);
         const result = await ci.updateCommitMapping(messageID);
         console.log(`Result: ${result}`);
