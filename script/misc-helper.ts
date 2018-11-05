@@ -67,6 +67,7 @@ async function getNotes(): Promise<GitNotes> {
         for (const pr of pullRequests) {
             const meta = await gitGitGadget.getPRMetadata(pr.pullRequestURL);
             if (!meta) {
+                console.log(`No meta found for ${pr.pullRequestURL}`);
                 continue;
             }
 
