@@ -80,6 +80,12 @@ export async function parseMBox(mbox: string, gentle?: boolean):
         }
     }
 
+    if (cc) {
+        cc = cc!.filter((value: string) => {
+            return value.startsWith("Johannes");
+        });
+    }
+
     if (!gentle && (!to || !subject || !from)) {
         throw new Error(`Missing To, Subject and/or From header:\n${header}`);
     }
