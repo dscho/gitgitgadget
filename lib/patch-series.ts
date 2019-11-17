@@ -142,12 +142,12 @@ export class PatchSeries {
                 pullRequestURL,
             };
         } else {
-            if (!options.noUpdate &&   // allow reprint of submitted PRs
-                !await git(["rev-list",
-                            `${metadata.headCommit}...${headCommit}`],
-                           { workDir })) {
-                throw new Error(`${headCommit} was already submitted`);
-            }
+            // if (!options.noUpdate &&   // allow reprint of submitted PRs
+            //     !await git(["rev-list",
+            //                 `${metadata.headCommit}...${headCommit}`],
+            //                { workDir })) {
+            //     throw new Error(`${headCommit} was already submitted`);
+            // }
 
             const previousRange =
                 `${metadata.baseCommit}..${metadata.headCommit}`;
