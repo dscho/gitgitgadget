@@ -17,7 +17,7 @@ commander.version("1.0.0")
             + "`gitgitgadget.workDir`",
             undefined)
     .option("-G, --gitgitgadget-work-dir [directory]",
-            "Use a different gitgitgitgadget working directory than the "
+            "Use a different gitgitgadget working directory than the "
             + "current working directory to access the Git config e.g. for "
             + "`gitgitgadget.workDir`",
             ".")
@@ -52,6 +52,64 @@ async function getCIHelper(): Promise<CIHelper> {
     return new CIHelper(await getGitGitWorkDir(), commander.skipUpdate,
                         commander.gitgitgadgetWorkDir);
 }
+
+const apps: { [ name: string] : { allowedOrg: string[], id: number } } = {
+    "gitgitgadget": {
+        allowedOrg: ["gitgitgadget"],
+        id: 12836,
+    },
+    "gitgitgadget-git": {
+        allowedOrg: ["git", "dscho"],
+        id: 46807,
+    },
+};
+const appID2app = new Map<number, { allowedOrg: Set<string>, name: string }>();
+for (const name of Object.keys(apps)) {
+    const app = apps[name];
+    appID2app.set(app.id, {
+        allowedOrg: new Set<string>(app.allowedOrg),
+        name,
+    });
+}
+
+const deleteInstallation = async (appID: number, installationID: number)
+    : Promise<void> => {
+    const app = appID2app.get(appID);
+    if (!app) {
+        throw new Error(`Unhandled appID: ${appID}`);
+    }
+
+    const key = await gitConfig(`${app.name}.privateKey`);
+    if (!key) {
+        throw new Error(`Need the ${app.name} App's private key`);
+    }
+
+    const auth = createAppAuth({
+        id: appID,
+        privateKey: key.replace(/\\n/g, `\n`),
+    });
+    const appAuthentication = await auth({ type: "app" });
+    const client = new Octokit({auth: appAuthentication.token});
+
+    if (installationID < 0) {
+        const result = await client.apps.listInstallations({
+            per_page: 1000,
+        });
+        for (const i of result.data) {
+            if (!app.allowedOrg.has(i.account.login)) {
+                console.log(`Deleting ${app.name} from ${
+                    i.account.login}`);
+                await client.apps.deleteInstallation({
+                    installation_id: i.id
+                });
+            }
+        }
+    } else {
+        await client.apps.deleteInstallation({
+            installation_id: installationID,
+        });
+    }
+};
 
 (async (): Promise<void> => {
     const ci = await getCIHelper();
@@ -392,6 +450,72 @@ async function getCIHelper(): Promise<CIHelper> {
         await set({appID: 12836, installationID: 195971, name: "gitgitgadget"});
         for (const org of commander.args.slice(1)) {
             await set({ appID: 46807, name: org});
+        }
+    } else if (command === "list-app-installations") {
+        if (commander.args.length < 1) {
+            process.stderr.write(`${command}: unexpected argument(s)\n`);
+            process.exit(1);
+        }
+
+        const list = async (appID: number): Promise<void> => {
+            const app = appID2app.get(appID);
+            if (!app) {
+                throw new Error(`No app found for ${appID}`);
+            }
+            const key = await gitConfig(`${app.name}.privateKey`);
+            if (!key) {
+                throw new Error(`Need the ${app.name} App's private key`);
+            }
+
+            const auth = createAppAuth({
+                id: appID,
+                privateKey: key.replace(/\\n/g, `\n`),
+            });
+            const appAuthentication = await auth({ type: "app" });
+            const client = new Octokit({auth: appAuthentication.token});
+
+            const result = await client.apps.listInstallations({
+                per_page: 1000,
+            });
+            for (const i of result.data) {
+                console.log(`appID: ${appID}, installationID: ${i.id
+                    }: installed on ${i.account.login}`);
+            }
+        };
+
+        for (const appID of appID2app.keys()) {
+            await list(appID);
+        }
+    } else if (command === "delete-app-installation") {
+        if (commander.args.length < 2) {
+            process.stderr.write(`${command}: unexpected argument(s)\n`);
+            process.exit(1);
+        }
+
+        if (commander.args.length === 2 && commander.args[1] === "auto") {
+            for (const appID of appID2app.keys()) {
+                await deleteInstallation(appID, -1);
+            }
+        } else {
+            let appID: number;
+            if (commander.args.length < 3) {
+                appID = 12836;
+            } else if (commander.args[1].match(/^\d+$/)) {
+                appID = parseInt(commander.args[1], 10);
+            } else {
+                const map: {[name: string]: number} = {
+                    "gitgitgadget": 12836,
+                    "gitgitgadget-git": 46807,
+                };
+                appID = map[commander.args[1]];
+                if (appID === undefined) {
+                    throw new Error(`Unknown app: ${commander.args[1]}`);
+                }
+            }
+            const installationID =
+                parseInt(commander.args[commander.args.length - 1], 10);
+
+            await deleteInstallation(appID, installationID);
         }
     } else if (command === "handle-pr-comment") {
         if (commander.args.length !== 2 && commander.args.length !== 3) {
