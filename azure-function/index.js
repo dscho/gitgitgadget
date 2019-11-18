@@ -128,6 +128,7 @@ module.exports = async (context, req) => {
 
             const comment = req.body.comment;
             const prNumber = req.body.issue.number;
+context.log(`org: ${repositoryOwner}, prNumber: ${prNumber}`);
             if (!comment || !comment.id || !prNumber) {
                 context.log(`Invalid payload:\n${JSON.stringify(req.body, null, 4)}`);
                 throw new Error('Invalid payload');
@@ -140,6 +141,7 @@ module.exports = async (context, req) => {
 
             /* Only trigger the Pipeline for valid commands */
             if (!comment.body || !comment.body.match(/^\/(submit|preview|allow|disallow|test)\b/)) {
+context.log(`Got comment '${comment.body}'`);
                 context.res = {
                     body: `Not a command: '${comment.body}'`,
                 };
