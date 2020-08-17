@@ -453,6 +453,7 @@ export class PatchSeries {
         const sender = `${senderName ? PatchSeries.encodeSender(senderName)
                        : ""}${senderEmail ? ` <${senderEmail}>` : ""}`;
         const replaceSender = sender ? sender : author;
+console.log(`Using sender header ${senderHdr}`);
 
         mails.map((mail, i) => {
             const match = mail.match(/^([^]*?)(\n\n[^]*)$/);
@@ -507,6 +508,7 @@ export class PatchSeries {
             }
 
             mails[i] = header + senderHdr + from + match[2];
+console.log(`Replaced email header with ${header + senderHdr + from}`);
         });
     }
 
