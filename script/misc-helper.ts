@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as util from "util";
 import { createAppAuth } from "@octokit/auth-app";
 import { Octokit } from "@octokit/rest";
 import commander = require("commander");
@@ -7,6 +9,7 @@ import { git, gitConfig } from "../lib/git";
 import { GitHubGlue } from "../lib/github-glue";
 import { toPrettyJSON } from "../lib/json-util";
 import { IPatchSeriesMetadata } from "../lib/patch-series-metadata";
+import { parseHeadersAndSendMail } from "../lib/send-mail";
 
 commander.version("1.0.0")
     .usage("[options] ( update-open-prs | lookup-upstream-commit | "
@@ -430,6 +433,26 @@ async function getCIHelper(): Promise<CIHelper> {
         }
         await ci.handleNewMails(mailArchiveGitDir!,
                                 onlyPRs.size ? onlyPRs : undefined);
+    } else if (command === "resend-mbox") {
+        if (commander.args.length !== 2) {
+            process.stderr.write(`${command}: require the path to a mail ${
+                ""} in MBox format\n`);
+            process.exit(1);
+        }
+        const readFile = util.promisify(fs.readFile);
+        const mbox = await readFile(commander.args[1]);
+
+        const smtpUser = await gitConfig("gitgitgadget.smtpUser", ".");
+        const smtpHost = await gitConfig("gitgitgadget.smtpHost", ".");
+        const smtpPass = await gitConfig("gitgitgadget.smtpPass", ".");
+        const smtpOpts = await gitConfig("gitgitgadget.smtpOpts", ".");
+        if (!smtpUser || !smtpHost || !smtpPass) {
+            throw new Error("No SMTP settings configured");
+        }
+        const smtpOptions = { smtpHost, smtpOpts, smtpPass, smtpUser };
+
+        await parseHeadersAndSendMail(mbox.toString().replace(/\r\n/g, "\n"),
+                                      smtpOptions);
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
