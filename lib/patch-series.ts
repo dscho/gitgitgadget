@@ -433,16 +433,17 @@ export class PatchSeries {
         return `"${match[1].replace(/["\\\\]/g, "\\$&")}"${match[2]}${match[3]}`;
     }
 
-/*
-Record the user who did the pull request on the "From:" header of cover
-letter and patches in the series.
-Keep adding in-body From: as necessary to record the commit author name
-when it is different from the user who created the pull request (whose name
-and address is recorded on the "From:" header of the e-mail).
-Use "Sender:" to record the fact that the message is sent from
-gitgitgadget@gmail.com instead. Add the same on "Cc:" if needed to ensure
-that responses will be seen by GGG.
-*/
+    /*
+     * Record the user who did the pull request on the "From:" header of cover
+     * letter and patches in the series.
+     *
+     * Keep adding in-body From: as necessary to record the commit author name
+     * when it is different from the user who created the pull request (whose
+     * name and address is recorded on the "From:" header of the e-mail).
+     * Use "Sender:" to record the fact that the message is sent from
+     * gitgitgadget@gmail.com instead. Add the same on "Cc:" if needed to ensure
+     * that responses will be seen by GitGitGadget.
+    */
     protected static insertCcAndFromLines(mails: string[], thisAuthor: string,
                                           senderName?: string,
                                           senderEmail?: string):
@@ -472,15 +473,17 @@ that responses will be seen by GGG.
                 throw new Error(`Bad email address:\n\n${authorMatch[2]}`);
             }
 
-// if ggg, from = thisAuthor != sender for cover letter
-// iow replaceSender for cover letter
-// replace sender but no cc or from append
-// if not ggg, from = thisAuthor for cover letter
-// do nothing
-// from = patch author for not cover letter
-// do nothing
-// from != patch author for not cover letter
-// replace sender. cc if not there; append from
+            /*
+             * If ggg, from = thisAuthor != sender for cover letter
+             * iow replaceSender for cover letter
+             * replace sender but no cc or from append
+             * if not ggg, from = thisAuthor for cover letter
+             * do nothing
+             * from = patch author for not cover letter
+             * do nothing
+             * from != patch author for not cover letter
+             * replace sender. cc if not there; append from
+             */
 
             const fromSender = replaceSender.match(fromInfo[2]); // match?
 
