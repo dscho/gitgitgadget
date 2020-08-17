@@ -448,9 +448,8 @@ export class PatchSeries {
                                           senderName?: string,
                                           senderEmail?: string):
         void {
-        const isGitGitGadget = thisAuthor.match(/^GitGitGadget </);
         const author = PatchSeries.encodeSender(thisAuthor);
-        const senderHdr = isGitGitGadget ? `\nSender: ${author}` : "";
+        const senderHdr = senderEmail ? `\nSender: ${author}` : "";
         const sender = `${senderName ? PatchSeries.encodeSender(senderName)
                        : ""}${senderEmail ? ` <${senderEmail}>` : ""}`;
         const replaceSender = sender ? sender : author;
