@@ -4,7 +4,7 @@ on: [pull_request_target]
 
 jobs:
   auto-approve:
-    if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
+    if: github.actor == 'dscho' || github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/github-script@v4
