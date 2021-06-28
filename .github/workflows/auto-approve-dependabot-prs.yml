@@ -1,3 +1,4 @@
+# Dummy comment
 name: Auto-approve Dependabot Pull Requests
 
 on: [pull_request_target]
