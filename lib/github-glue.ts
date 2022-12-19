@@ -3,6 +3,7 @@ import { Octokit } from "@octokit/rest";
 import { git, gitConfig } from "./git";
 import { getPullRequestKey, pullRequestKeyInfo, pullRequestKey } from "./pullRequestKey";
 export { RequestError } from "@octokit/request-error";
+import consoleLogLevel from "console-log-level";
 
 export interface IPullRequestInfo {
     pullRequestURL: string;
@@ -206,12 +207,31 @@ export class GitHubGlue {
                                 {workDir: gitWorkDir});
         const path = files.replace(/\n[^]*/, "");
 
+let line = 1;
+if (commit === '67f60e4e5cbb470bbf3f556f962403af5dd5938c') {
+commit = 'a2b5f3e87d6ef62d8005cff5568ad3afc4af3771';
+line = 23;
+}
+// prKey.owner = 'dscho';
+// prKey.repo = 'rss-test';
+// prKey.pull_number = 674;
+// commit = '6d01f1fc46ebf5dfefa6a0a1fe3663810bc1bf1f';
+// const path = '.github/workflows/action-tmate-macos.yml';
+// console.log({
+//             body: comment,
+//             commit_id: commit,
+//             // end_commit_id: commit,
+//             // side: "RIGHT",
+//             path,
+//             line: 1,
+//             ...prKey
+//         });
         const status = await this.client.rest.pulls.createReviewComment({
             body: comment,
             commit_id: commit,
             side: "RIGHT",
             path,
-            line: 1,
+            line,
             ...prKey
         });
         return {
@@ -480,7 +500,9 @@ export class GitHubGlue {
             if (!token) {
                 throw new Error(`Need a GitHub token for ${repositoryOwner}`);
             }
-            this.client = new Octokit({ auth: token }); // add log: console to debug
+            this.client = new Octokit({
+ auth: token,
+ log: consoleLogLevel({ level: "info" }) }); // add log: console to debug
             this.authenticated = repositoryOwner;
         }
     }

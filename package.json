@@ -24,7 +24,7 @@
   },
   "homepage": "https://gitgitgadget.github.io/",
   "files": [
-      "lib/*.ts"
+    "lib/*.ts"
   ],
   "jest": {
     "moduleFileExtensions": [
@@ -65,7 +65,9 @@
     "@octokit/auth-app": "^4.0.7",
     "@octokit/request-error": "^3.0.2",
     "@octokit/rest": "^19.0.5",
+    "@types/console-log-level": "^1.4.2",
     "commander": "^9.4.1",
+    "console-log-level": "^1.4.1",
     "dugite": "^2.1.0",
     "html-to-text": "^9.0.2",
     "json-stable-stringify": "^1.0.2",

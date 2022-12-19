@@ -75,7 +75,8 @@ export class MailArchiveGitHelper {
 
     public async processMails(prFilter?: (pullRequestURL: string) => boolean):
         Promise<boolean> {
-        const keys: Set<string> = new Set<string>();
+ console.log(`processMails`);
+       const keys: Set<string> = new Set<string>();
         (await git(["ls-tree", "-r", `${this.gggNotes.notesRef}:`],
                    { workDir: this.gggNotes.workDir })).split("\n")
                 .map((line: string) => {
@@ -239,8 +240,8 @@ export class MailArchiveGitHelper {
 
         let buffer = "";
         let counter = 0;
+        let caughtError = false;
         const lineHandler = async (line: string): Promise<void> => {
-
             if (line.startsWith("@@ ")) {
                 const match = line.match(/^@@ -(\d+,)?\d+ \+(\d+,)?(\d+)?/);
                 if (match) {
@@ -258,7 +259,10 @@ export class MailArchiveGitHelper {
                 try {
                     await mboxHandler(buffer);
                 } catch (reason) {
+console.log(reason);
                     console.log(`${reason}: skipping`);
+console.log(`setting caughtError, was ${caughtError}`);
+                    caughtError = true;
                 }
             }
         };
@@ -269,18 +273,21 @@ export class MailArchiveGitHelper {
         }
 
         const head = await revParse(this.branch, this.mailArchiveGitDir);
-        if (this.state.latestRevision === head) {
-            return false;
-        }
+console.log(`head: ${head}`);
+//         if (this.state.latestRevision === head) {
+//             return false;
+//         }
 
-        const range = `${this.state.latestRevision}..${head}`;
+//         const range = `${this.state.latestRevision}..${head}`;
+const range = '169963b92048bda2e7174480de66fdcc344a0c56..1915614b0caf9410edd6a9f6ee2169d0aa1818a2';
         console.log(`Handling commit range ${range}`);
         await git(["log", "-p", "-U99999", "--reverse", range],
                   { lineHandler, workDir: this.mailArchiveGitDir });
 
-        this.state.latestRevision = head;
-        await this.gggNotes.set(stateKey, this.state, true);
+        // this.state.latestRevision = head;
+        // await this.gggNotes.set(stateKey, this.state, true);
 
-        return true;
+console.log(`Returning ${!caughtError}`);
+        return !caughtError;
     }
 }

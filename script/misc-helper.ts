@@ -378,6 +378,13 @@ const commandOptions = commander.opts<ICommanderOptions>();
                 throw new Error(`Need the ${appName} App's private key`);
             }
 
+console.log({
+    authStrategy: createAppAuth,
+    auth: {
+        appId: options.appID,
+        privateKey: key.replace(/\\n/g, `\n`)
+    }
+});
             const client = new Octokit({
                 authStrategy: createAppAuth,
                 auth: {
@@ -387,11 +394,17 @@ const commandOptions = commander.opts<ICommanderOptions>();
             });
 
             if (options.installationID === undefined) {
+console.log({
+        owner: options.name,
+        repo: config.repo.name,
+});
+try {
                 options.installationID =
                     (await client.rest.apps.getRepoInstallation({
                         owner: options.name,
                         repo: config.repo.name,
                 })).data.id;
+} catch (e) { console.log(e); throw e; }
             }
             const result = await client.rest.apps.createInstallationAccessToken(
                 {
@@ -426,6 +439,7 @@ const commandOptions = commander.opts<ICommanderOptions>();
         await ci.handlePush(repositoryOwner, prNumber);
     } else if (command === "handle-new-mails") {
         const mailArchiveGitDir = await getVar("loreGitDir", commandOptions.gitgitgadgetWorkDir);
+console.log(mailArchiveGitDir);
 
         if (!mailArchiveGitDir) {
             process.stderr.write(`Need a ${config.mailrepo.descriptiveName} worktree`);
@@ -435,10 +449,12 @@ const commandOptions = commander.opts<ICommanderOptions>();
         for (const arg of commander.args.slice(1)) {
             onlyPRs.add(parseInt(arg, 10));
         }
+console.log(`handle ${JSON.stringify(onlyPRs)}`);
         if (!await ci.handleNewMails(mailArchiveGitDir, onlyPRs.size ? onlyPRs : undefined)) {
             process.stderr.write('There were errors handling the new mails');
             process.exit(1);
         }
+console.log('handleNewMails returned true');
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);

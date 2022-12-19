@@ -777,7 +777,10 @@ GitGitGadget needs an email address to Cc: you on your contribution, so that you
         await this.maybeUpdateGGGNotes();
         const mailArchiveGit = await MailArchiveGitHelper.get(this.notes, mailArchiveGitDir, this.github,
             this.config.mailrepo.branch);
-        return await mailArchiveGit.processMails(prFilter);
+        // return await mailArchiveGit.processMails(prFilter);
+const ret = await mailArchiveGit.processMails(prFilter);
+console.log(`ret: ${ret}`);
+return ret;
     }
 
     public async updateOpenPrs(): Promise<boolean> {
