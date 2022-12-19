@@ -209,6 +209,7 @@ export class GitHubGlue {
         const status = await this.client.rest.pulls.createReviewComment({
             body: comment,
             commit_id: commit,
+            side: "RIGHT",
             path,
             line: 1,
             ...prKey

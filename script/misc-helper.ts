@@ -435,7 +435,10 @@ const commandOptions = commander.opts<ICommanderOptions>();
         for (const arg of commander.args.slice(1)) {
             onlyPRs.add(parseInt(arg, 10));
         }
-        await ci.handleNewMails(mailArchiveGitDir, onlyPRs.size ? onlyPRs : undefined);
+        if (!await ci.handleNewMails(mailArchiveGitDir, onlyPRs.size ? onlyPRs : undefined)) {
+            process.stderr.write('There were errors handling the new mails');
+            process.exit(1);
+        }
     } else {
         process.stderr.write(`${command}: unhandled sub-command\n`);
         process.exit(1);
