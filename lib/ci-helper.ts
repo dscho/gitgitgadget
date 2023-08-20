@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as util from "util";
+import * as core from "@actions/core";
 import addressparser from "nodemailer/lib/addressparser/index.js";
 import path from "path";
 import { ILintError, LintCommit } from "./commit-lint.js";
@@ -924,6 +925,10 @@ export class CIHelper {
         }
 
         return optionsChanged;
+    }
+
+    public static getActionsCore(): typeof import("@actions/core") {
+        return core;
     }
 
     private async getPRInfo(prKey: pullRequestKey): Promise<IPullRequestInfo> {
