@@ -1,6 +1,8 @@
 import * as fs from "fs";
 import * as util from "util";
+import * as core from "@actions/core";
 import addressparser from "nodemailer/lib/addressparser/index.js";
+import path from "path";
 import { ILintError, LintCommit } from "./commit-lint.js";
 import { commitExists, git, emptyTreeName } from "./git.js";
 import { GitNotes } from "./git-notes.js";
@@ -14,6 +16,7 @@ import { IMailMetadata } from "./mail-metadata.js";
 import { IPatchSeriesMetadata } from "./patch-series-metadata.js";
 import { IConfig, getExternalConfig, setConfig } from "./project-config.js";
 import { getPullRequestKeyFromURL, pullRequestKey } from "./pullRequestKey.js";
+import { fileURLToPath } from "url";
 
 const readFile = util.promisify(fs.readFile);
 type CommentFunction = (comment: string) => Promise<void>;
@@ -43,6 +46,27 @@ export class CIHelper {
 
     public static async getConfig(configFile?: string): Promise<IConfig> {
         return configFile ? await getExternalConfig(configFile) : getConfig();
+    }
+
+    public static async initializeWorkDir(workDir: string, config: IConfig): Promise<void> {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        if (fs.existsSync(workDir)) throw new Error(`Work directory ${workDir} already exists`);
+        await git(["init", "--bare", "--initial-branch", "main", workDir]);
+        for (const [key, value] of [
+            ["remote.origin.url", `https://github.com/${config.repo.owner}/${config.repo.name}`],
+            ["remote.origin.promisor", "true"],
+            ["remote.origin.partialclonefilter", "blob:none"],
+        ]) {
+            await git(["config", key, value], { workDir });
+        }
+        await git(["fetch", "origin", "--depth=1", `${GitNotes.defaultNotesRef}:${GitNotes.defaultNotesRef}`], {
+            workDir,
+        });
+        await git(["fetch", "origin", "--depth=500", `${GitNotes.defaultNotesRef}:${GitNotes.defaultNotesRef}`], {
+            workDir,
+        });
+        // "Un-shallow" the refs without fetching anything
+        await fs.promises.rm(path.join(workDir, ".git", "shallow"), { force: true });
     }
 
     public constructor(workDir: string, config: IConfig, skipUpdate?: boolean, gggConfigDir = ".") {
@@ -773,6 +797,11 @@ export class CIHelper {
         }
     }
 
+    public static async getWelcomeMessage(username: string): Promise<string> {
+        const resPath = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "res", "WELCOME.md");
+        return (await readFile(resPath)).toString().replace(/\${username}/g, username);
+    }
+
     public async handlePush(repositoryOwner: string, prNumber: number): Promise<void> {
         const prKey = {
             owner: repositoryOwner,
@@ -790,7 +819,7 @@ export class CIHelper {
 
         const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.notesPushToken);
         if (!pr.hasComments && !gitGitGadget.isUserAllowed(pr.author)) {
-            const welcome = (await readFile("res/WELCOME.md")).toString().replace(/\${username}/g, pr.author);
+            const welcome = await CIHelper.getWelcomeMessage(pr.author);
             await this.github.addPRComment(prKey, welcome);
 
             await this.github.addPRLabels(prKey, ["new user"]);
@@ -896,6 +925,10 @@ export class CIHelper {
         }
 
         return optionsChanged;
+    }
+
+    public static getActionsCore(): typeof import("@actions/core") {
+        return core;
     }
 
     private async getPRInfo(prKey: pullRequestKey): Promise<IPullRequestInfo> {
