@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as util from "util";
 import addressparser from "nodemailer/lib/addressparser/index.js";
+import path from "path";
 import { ILintError, LintCommit } from "./commit-lint.js";
 import { commitExists, git, emptyTreeName } from "./git.js";
 import { GitNotes } from "./git-notes.js";
@@ -43,6 +44,27 @@ export class CIHelper {
 
     public static async getConfig(configFile?: string): Promise<IConfig> {
         return configFile ? await getExternalConfig(configFile) : getConfig();
+    }
+
+    public static async initializeWorkDir(workDir: string, config: IConfig): Promise<void> {
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        if (fs.existsSync(workDir)) throw new Error(`Work directory ${workDir} already exists`);
+        await git(["init", "--bare", "--initial-branch", "main", workDir]);
+        for (const [key, value] of [
+            ["remote.origin.url", `https://github.com/${config.repo.owner}/${config.repo.name}`],
+            ["remote.origin.promisor", "true"],
+            ["remote.origin.partialclonefilter", "blob:none"],
+        ]) {
+            await git(["config", key, value], { workDir });
+        }
+        await git(["fetch", "origin", "--depth=1", `${GitNotes.defaultNotesRef}:${GitNotes.defaultNotesRef}`], {
+            workDir,
+        });
+        await git(["fetch", "origin", "--depth=500", `${GitNotes.defaultNotesRef}:${GitNotes.defaultNotesRef}`], {
+            workDir,
+        });
+        // "Un-shallow" the refs without fetching anything
+        await fs.promises.rm(path.join(workDir, ".git", "shallow"), { force: true });
     }
 
     public constructor(workDir: string, config: IConfig, skipUpdate?: boolean, gggConfigDir = ".") {
