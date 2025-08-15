@@ -1,8 +1,11 @@
+import * as core from "@actions/core";
 import * as fs from "fs";
 import * as util from "util";
+import { spawnSync } from "child_process";
 import addressparser from "nodemailer/lib/addressparser/index.js";
+import path from "path";
 import { ILintError, LintCommit } from "./commit-lint.js";
-import { commitExists, git, emptyTreeName } from "./git.js";
+import { commitExists, git, emptyTreeName, revParse } from "./git.js";
 import { GitNotes } from "./git-notes.js";
 import { GitGitGadget, IGitGitGadgetOptions } from "./gitgitgadget.js";
 import { getConfig } from "./gitgitgadget-config.js";
@@ -15,6 +18,7 @@ import { IPatchSeriesMetadata } from "./patch-series-metadata.js";
 import { IConfig, getExternalConfig, setConfig } from "./project-config.js";
 import { getPullRequestKeyFromURL, pullRequestKey } from "./pullRequestKey.js";
 import { ISMTPOptions } from "./send-mail.js";
+import { fileURLToPath } from "url";
 
 const readFile = util.promisify(fs.readFile);
 type CommentFunction = (comment: string) => Promise<void>;
@@ -42,6 +46,7 @@ export class CIHelper {
     private notesPushToken: string | undefined;
     private smtpOptions?: ISMTPOptions;
     protected maxCommitsExceptions: string[];
+    protected mailingListMirror: string | undefined;
 
     public static async getConfig(configFile?: string): Promise<IConfig> {
         return configFile ? await getExternalConfig(configFile) : getConfig();
@@ -60,6 +65,213 @@ export class CIHelper {
         this.maxCommitsExceptions = this.config.lint?.maxCommitsIgnore || [];
         this.urlBase = `https://github.com/${this.config.repo.owner}/`;
         this.urlRepo = `${this.urlBase}${this.config.repo.name}/`;
+    }
+
+    public async setupGitHubAction(setupOptions?: {
+        needsMailingListMirror?: boolean;
+        needsUpstreamBranches?: boolean;
+        needsMailToCommitNotes?: boolean;
+    }): Promise<void> {
+        // help dugite realize where `git` is...
+        process.env.LOCAL_GIT_DIRECTORY = "/usr/";
+        process.env.GIT_EXEC_PATH = "/usr/lib/git-core";
+
+        // ensure that the scripts use the right `git` executable
+        process.env.PATH = `${process.env.GIT_EXEC_PATH}:${process.env.PATH}`;
+
+        // configure the Git committer information
+        process.env.GIT_CONFIG_PARAMETERS = [
+            process.env.GIT_CONFIG_PARAMETERS,
+            "'user.name=GitGitGadget'",
+            "'user.email=gitgitgadget@gmail.com'",
+        ]
+            .filter((e) => e)
+            .join(" ");
+
+        // get the access tokens via the inputs of the GitHub Action
+        this.setAccessToken("gitgitgadget", core.getInput("gitgitgadget-git-access-token"));
+        this.setAccessToken("git", core.getInput("git-git-access-token"));
+        this.setAccessToken("dscho", core.getInput("dscho-git-access-token"));
+
+        // set the SMTP options
+        try {
+            const options = JSON.parse(core.getInput("smtp-options")) as {
+                user?: string;
+                host?: string;
+                pass?: string;
+                opts?: string;
+            };
+            if (typeof options === "object" && options.user && options.host && options.pass) {
+                this.setSMTPOptions({
+                    smtpUser: options.user,
+                    smtpHost: options.host,
+                    smtpPass: options.pass,
+                    smtpOpts: options.opts,
+                });
+            }
+        } catch (e) {
+            // Ignore, for now
+        }
+
+        // eslint-disable-next-line security/detect-non-literal-fs-filename
+        if (!fs.existsSync(this.workDir)) await git(["init", "--bare", "--initial-branch", "main", this.workDir]);
+        for (const [key, value] of [
+            ["gc.auto", "0"],
+            ["remote.origin.url", `https://github.com/${this.config.repo.owner}/${this.config.repo.name}`],
+            ["remote.origin.promisor", "true"],
+            ["remote.origin.partialclonefilter", "blob:none"],
+            ["remote.upstream.url", `https://github.com/${this.config.repo.baseOwner}/${this.config.repo.name}`],
+            ["remote.upstream.promisor", "true"],
+            ["remote.upstream.partialclonefilter", "blob:none"],
+        ]) {
+            await git(["config", key, value], { workDir: this.workDir });
+        }
+        const notesRefs = [GitNotes.defaultNotesRef];
+        if (setupOptions?.needsMailToCommitNotes) {
+            notesRefs.push("refs/notes/mail-to-commit", "refs/notes/commit-to-mail");
+        }
+        await git(
+            [
+                "-c",
+                "remote.origin.promisor=false", // let's fetch the notes with all of their blobs
+                "fetch",
+                "origin",
+                "--depth=1",
+                ...notesRefs.map((ref) => `+${ref}:${ref}`),
+            ],
+            {
+                workDir: this.workDir,
+            },
+        );
+        this.gggNotesUpdated = true;
+        if (setupOptions?.needsUpstreamBranches) {
+            console.time("fetch upstream branches");
+            await git(
+                [
+                    "fetch",
+                    "origin",
+                    "--depth=500",
+                    "--no-filter",
+                    ...this.config.repo.trackingBranches.map(
+                        (name) => `+refs/heads/${name}:refs/remotes/upstream/${name}`,
+                    ),
+                ],
+                {
+                    workDir: this.workDir,
+                },
+            );
+            console.timeEnd("fetch upstream branches");
+            console.time("get open PR head commits");
+            const openPRCommits = (
+                await Promise.all(
+                    this.config.repo.owners.map(async (repositoryOwner) => {
+                        return await this.github.getOpenPRs(repositoryOwner);
+                    }),
+                )
+            )
+                .flat()
+                .map((pr) => pr.headCommit);
+            console.timeEnd("get open PR head commits");
+            console.time("fetch open PR head commits");
+            await git(["fetch", "origin", "--no-filter", ...openPRCommits], {
+                workDir: this.workDir,
+            });
+            console.timeEnd("fetch open PR head commits");
+        }
+        // "Un-shallow" the refs without fetching anything; Since this is a partial clone,
+        // any missing commits will be fetched on demand (but when fetching a commit, you
+        // get the entire commit history reachable from it, too, that's why we go through
+        // the stunt of making a shallow-not-shallow fetch here).
+        await fs.promises.rm(path.join(this.workDir, "shallow"), { force: true });
+
+        if (setupOptions?.needsMailingListMirror) {
+            this.mailingListMirror = "git-mailing-list-mirror.git";
+            const epoch = 1;
+
+            // eslint-disable-next-line security/detect-non-literal-fs-filename
+            if (!fs.existsSync(this.mailingListMirror)) {
+                await git(["init", "--bare", "--initial-branch", this.config.mailrepo.branch, this.mailingListMirror]);
+            }
+
+            // First fetch from GitGitGadget's mirror, which supports partial clones
+            for (const [key, value] of [
+                ["remote.mirror.url", `https://github.com/${this.config.repo.owner}/git-mailing-list-mirror`],
+                ["remote.mirror.promisor", "true"],
+                ["remote.mirror.partialclonefilter", "blob:none"],
+            ]) {
+                await git(["config", key, value], { workDir: this.mailingListMirror });
+            }
+            console.time("fetch mailing list mirror");
+            await git(
+                [
+                    "-c",
+                    "remote.mirror.promisor=false", // let's fetch the mails with all of their contents
+                    "fetch",
+                    "mirror",
+                    `--depth=${setupOptions?.needsMailToCommitNotes ? 5000 : 50}`,
+                    `+refs/heads/lore-${epoch}:refs/heads/lore-${epoch}`,
+                ],
+                {
+                    workDir: this.mailingListMirror,
+                },
+            );
+            console.timeEnd("fetch mailing list mirror");
+
+            // Now update the head branch from the authoritative repository
+            await git(["config", "remote.origin.url", `${this.config.mailrepo.url.replace(/\/*$/, "")}/${epoch}`], {
+                workDir: this.mailingListMirror,
+            });
+            console.time(`update from ${this.config.mailrepo.url}`);
+            await git(
+                [
+                    "fetch",
+                    "origin",
+                    `+refs/heads/${this.config.mailrepo.branch}:refs/heads/${this.config.mailrepo.branch}`,
+                ],
+                {
+                    workDir: this.mailingListMirror,
+                },
+            );
+            console.timeEnd(`update from ${this.config.mailrepo.url}`);
+            if (setupOptions?.needsMailToCommitNotes) {
+                // The `lookup-commit.sh` script expects either a full clone or that the
+                // `tae-list.latest-rev` and `tae-list.txt` files are present.
+
+                const shallow = // eslint-disable-next-line security/detect-non-literal-fs-filename
+                    (await fs.promises.readFile(path.join(this.mailingListMirror, "shallow"), "utf8")).split("\n")[0];
+                await git(["show", "--stat", shallow], { workDir: this.mailingListMirror });
+                // eslint-disable-next-line security/detect-non-literal-fs-filename
+                await fs.promises.writeFile(path.join(this.mailingListMirror, "tae-list.latest-rev"), shallow);
+                // eslint-disable-next-line security/detect-non-literal-fs-filename
+                await fs.promises.writeFile(path.join(this.mailingListMirror, "tae-list.txt"), "");
+            }
+            // "Un-shallow" the refs without fetching anything; Since this is a partial clone,
+            // any missing commits will be fetched on demand (but when fetching a commit, you
+            // get the entire commit history reachable from it, too, that's why we go through
+            // the stunt of making a shallow-not-shallow fetch here).
+            await fs.promises.rm(path.join(this.mailingListMirror, "shallow"), { force: true });
+        }
+    }
+
+    public parsePRCommentURLInput(): { owner: string; repo: string; prNumber: number; commentId: number } {
+        const prCommentUrl = core.getInput("pr-comment-url");
+        const [, owner, repo, prNumber, commentId] =
+            prCommentUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)#issuecomment-(\d+)$/) || [];
+        if (!this.config.repo.owners.includes(owner) || repo !== "git") {
+            throw new Error(`Invalid PR comment URL: ${prCommentUrl}`);
+        }
+        return { owner, repo, prNumber: parseInt(prNumber, 10), commentId: parseInt(commentId, 10) };
+    }
+
+    public parsePRURLInput(): { owner: string; repo: string; prNumber: number } {
+        const prCommentUrl = core.getInput("pr-url");
+
+        const [, owner, repo, prNumber] =
+            prCommentUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/) || [];
+        if (!this.config.repo.owners.includes(owner) || repo !== "git") {
+            throw new Error(`Invalid PR comment URL: ${prCommentUrl}`);
+        }
+        return { owner, repo, prNumber: parseInt(prNumber, 10) };
     }
 
     public setAccessToken(repositoryOwner: string, token: string): void {
@@ -110,6 +322,60 @@ export class CIHelper {
         }
         await this.mail2commit.mail2CommitNotes.setString(messageId, gitGitCommit, true);
         await this.commit2mailNotes.appendCommitNote(gitGitCommit, messageId);
+    }
+
+    /**
+     * Update the `commit-to-mail` and `mail-to-commit` Git notes refs.
+     */
+    public async updateMailToCommitNotes(): Promise<void> {
+        // We'll assume that the `commit-to-mail` and `mail-to-commit` notes refs are up to date
+        const commit2MailTipCommit = await revParse("refs/notes/commit-to-mail", this.workDir);
+        const dir = fileURLToPath(new URL(".", import.meta.url));
+        const lookupCommitScriptPath = path.resolve(dir, "..", "script", "lookup-commit.sh");
+        console.time("lookup-commit.sh");
+        const lookupCommitResult = spawnSync("sh", ["-x", lookupCommitScriptPath, "--notes", "update"], {
+            stdio: "inherit",
+            env: {
+                ...process.env,
+                GITGIT_DIR: this.workDir,
+                GITGIT_GIT_REMOTE: this.urlRepo,
+                LORE_GIT_DIR: this.mailingListMirror,
+                GITGIT_MAIL_REMOTE: this.config.mailrepo.url,
+                GITGIT_MAIL_EPOCH: "1",
+            },
+        });
+        console.timeEnd("lookup-commit.sh");
+        if (lookupCommitResult.status !== 0) throw new Error("lookup-commit.sh failed");
+        // If there were no updates, we are done
+        if (commit2MailTipCommit === (await revParse("refs/notes/commit-to-mail", this.workDir))) return;
+
+        const updateMailToCommitNotesScriptPath = path.resolve(dir, "..", "script", "update-mail-to-commit-notes.sh");
+        console.time("update-mail-to-commit-notes.sh");
+        const updateMailToCommitNotesResult = spawnSync("sh", ["-x", updateMailToCommitNotesScriptPath], {
+            stdio: "inherit",
+            env: {
+                ...process.env,
+                GITGIT_DIR: this.workDir,
+                GITGIT_GIT_REMOTE: this.urlRepo,
+            },
+        });
+        console.timeEnd("update-mail-to-commit-notes.sh");
+        if (updateMailToCommitNotesResult.status !== 0) throw new Error("update-mail-to-commit-notes.sh failed");
+
+        const mail2commitNotes = new GitNotes(this.workDir, "refs/notes/mail-to-commit");
+        await mail2commitNotes.push(this.urlRepo, this.notesPushToken);
+        const commit2MailNotes = new GitNotes(this.workDir, "refs/notes/commit-to-mail");
+        await commit2MailNotes.push(this.urlRepo, this.notesPushToken);
+
+        const commit2MailTipPatch = await git(["show", "refs/notes/commit-to-mail"], { workDir: this.workDir });
+        // Any unhandled commit will get annotated with "no match"
+        // To list all of them, the tip commit's diff is parsed and the commit hash is
+        // extracted from the "filename" on the `+++ b/` line.
+        const noMatch = commit2MailTipPatch
+            .split("\ndiff --git ")
+            .filter((d) => d.endsWith("+no match"))
+            .map((d) => d.split("\n+++ b/")[1].split("\n")[0].replace("/", ""));
+        if (noMatch.length) throw new Error(`Could not find mail(s) for: ${noMatch.join("\n")}`);
     }
 
     /**
@@ -785,6 +1051,11 @@ export class CIHelper {
         }
     }
 
+    public static async getWelcomeMessage(username: string): Promise<string> {
+        const resPath = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "res", "WELCOME.md");
+        return (await readFile(resPath)).toString().replace(/\${username}/g, username);
+    }
+
     public async handlePush(repositoryOwner: string, prNumber: number): Promise<void> {
         const prKey = {
             owner: repositoryOwner,
@@ -808,7 +1079,7 @@ export class CIHelper {
             this.smtpOptions,
         );
         if (!pr.hasComments && !gitGitGadget.isUserAllowed(pr.author)) {
-            const welcome = (await readFile("res/WELCOME.md")).toString().replace(/\${username}/g, pr.author);
+            const welcome = await CIHelper.getWelcomeMessage(pr.author);
             await this.github.addPRComment(prKey, welcome);
 
             await this.github.addPRLabels(prKey, ["new user"]);
@@ -822,7 +1093,13 @@ export class CIHelper {
         }
     }
 
-    public async handleNewMails(mailArchiveGitDir: string, onlyPRs?: Set<number>): Promise<boolean> {
+    public async handleNewMails(mailArchiveGitDir?: string, onlyPRs?: Set<number>): Promise<boolean> {
+        if (!mailArchiveGitDir) {
+            mailArchiveGitDir = this.mailingListMirror;
+            if (!mailArchiveGitDir) {
+                throw new Error("No mail archive directory specified (forgot to run `setupGitHubAction()`?)");
+            }
+        }
         await git(["fetch"], { workDir: mailArchiveGitDir });
         const prFilter = !onlyPRs
             ? undefined
