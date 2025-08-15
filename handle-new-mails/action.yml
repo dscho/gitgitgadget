@@ -1,0 +1,19 @@
+name: 'Handle new mails'
+description: 'Processes new mails on the Git mailing list'
+author: 'Johannes Schindelin'
+inputs:
+  pr-repo-token:
+    description: 'The access token to work on gitgitgadget/git'
+    required: true
+  upstream-repo-token:
+    description: 'The access token to work on git/git'
+    required: true
+  test-repo-token:
+    description: 'The access token to work on dscho/git'
+    required: true
+runs:
+  using: 'node20'
+  main: './index.js'
+branding:
+  icon: 'git-commit'
+  color: 'orange'
