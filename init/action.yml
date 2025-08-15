@@ -8,6 +8,9 @@ inputs:
   git-git-access-token:
     description: 'The access token to work on git/git'
     required: true
+  dscho-git-access-token:
+    description: 'The access token to work on dscho/git'
+    required: true
 runs:
   using: 'node20'
   main: './index.js'

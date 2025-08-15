@@ -12,6 +12,10 @@ async function run() {
 
   ci.setAccessToken("gitgitgadget", core.getInput("gitgitgadget-git-token"))
   ci.setAccessToken("git", core.getInput("git-git-token"))
+  ci.setAccessToken("dscho", core.getInput("dscho-git-token"))
+
+  // add a reaction
+  await ci.github.addReaction("dscho", "git", 791752382, "heart")
 }
 
 run()
