@@ -42,7 +42,7 @@ async function run() {
     core.getInput("gitgitgadget-git-access-token"),
   )
   ci.setAccessToken("git", core.getInput("git-git-access-token"))
-  ci.setAccessToken("dscho", core.getInput("dscho-git-token"))
+  ci.setAccessToken("dscho", core.getInput("dscho-git-access-token"))
 
   for (const user of ["dscho", "xyz"]) {
     console.log(`user ${user} allowed: ${await ci.isAllowed(user)}`)
