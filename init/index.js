@@ -36,6 +36,9 @@ async function run() {
   ci.setAccessToken("git", core.getInput("git-git-token"))
   ci.setAccessToken("dscho", core.getInput("dscho-git-token"))
 
+  for (const user of ["dscho", "xyz"]) {
+    console.log(`user ${user} allowed: ${ci.isAllowed(user)}`)
+  }
   // add a reaction
   await ci.github.addReaction("dscho", "git", 791752382, "heart")
 }
