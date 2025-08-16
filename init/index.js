@@ -22,7 +22,11 @@ async function run() {
   } catch (e) {
     console.error(e)
   }
-  console.log(`Git remote-https: ${await CIHelper.git(["remote-https"])}`)
+  try {
+    console.log(`Git remote-https: ${await CIHelper.git(["remote-https"])}`)
+  } catch (e) {
+    console.error(e)
+  }
 
   const config = await CIHelper.getConfig()
   await CIHelper.initializeWorkDir("git", config)
