@@ -60,7 +60,7 @@ jobs:
 
             # Now make that fake merge commit
             tree=$(git write-tree) &&
-            msg="Sync v1 with ($(git show -s --pretty=reference origin/main))" &&
+            msg="Sync v1 with ($(git show -s --pretty=reference HEAD))" &&
             case "$v1" in
             HEAD) commit=$(git commit-tree -m "$msg" $tree -p HEAD);;
             *) commit=$(git commit-tree -m "$msg" $tree -p $v1 -p HEAD);;
