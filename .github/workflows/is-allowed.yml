@@ -1,0 +1,15 @@
+name: test is-allowed
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-is-allowed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dscho/gitgitgadget/is-allowed@v1
+        with:
+          login: dscho
+      - uses: dscho/gitgitgadget/is-allowed@v1
+        with:
+          login: desktop
