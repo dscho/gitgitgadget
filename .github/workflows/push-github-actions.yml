@@ -43,6 +43,8 @@ jobs:
               v1=HEAD &&
               tag_name=v1.0
             else
+              set -x &&
+              git for-each-ref &&
               v1=FETCH_HEAD &&
               tag_name="$(git name-rev '--refs=refs/tags/v[0-9]*.[0-9]*' $v1)" &&
               case "$tag_name" in
