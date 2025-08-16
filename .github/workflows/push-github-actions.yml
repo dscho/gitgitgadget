@@ -48,7 +48,7 @@ jobs:
               tag_name="$(git name-rev '--refs=refs/tags/v[0-9]*.[0-9]*' $v1)" &&
               case "$tag_name" in
               '') tag_name=v1.0;;
-              *) incr="${tag_name#* v1.}"; tag_name="v1.$((incr + 1))";;
+              *) incr="${tag_name#* tags/v1.}"; tag_name="v1.$((incr + 1))";;
               esac
             fi &&
 
