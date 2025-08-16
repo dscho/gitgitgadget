@@ -37,8 +37,11 @@ async function run() {
   const ci = new CIHelper("git", config, true)
   console.log(`setup done`)
 
-  ci.setAccessToken("gitgitgadget", core.getInput("gitgitgadget-git-token"))
-  ci.setAccessToken("git", core.getInput("git-git-token"))
+  ci.setAccessToken(
+    "gitgitgadget",
+    core.getInput("gitgitgadget-git-access-token"),
+  )
+  ci.setAccessToken("git", core.getInput("git-git-access-token"))
   ci.setAccessToken("dscho", core.getInput("dscho-git-token"))
 
   for (const user of ["dscho", "xyz"]) {
