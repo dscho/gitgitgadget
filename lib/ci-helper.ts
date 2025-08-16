@@ -606,7 +606,12 @@ export class CIHelper {
         };
 
         try {
-            const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.notesPushToken);
+            const gitGitGadget = await GitGitGadget.get(
+                this.gggConfigDir,
+                this.workDir,
+                this.urlRepo,
+                this.notesPushToken,
+            );
             if (!gitGitGadget.isUserAllowed(comment.author)) {
                 throw new Error(`User ${comment.author} is not yet permitted to use ${this.config.app.displayName}`);
             }
@@ -817,7 +822,7 @@ export class CIHelper {
             await this.github.addPRComment(prKey, redacted);
         };
 
-        const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.notesPushToken);
+        const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.urlRepo, this.notesPushToken);
         if (!pr.hasComments && !gitGitGadget.isUserAllowed(pr.author)) {
             const welcome = await CIHelper.getWelcomeMessage(pr.author);
             await this.github.addPRComment(prKey, welcome);
