@@ -8,27 +8,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/create-github-app-token@v1
-      id: gitgitgadget-git-token
-      with:
-        app-id: ${{ secrets.GITGITGADGET_GITHUB_APP_ID }}
-        private-key: ${{ secrets.GITGITGADGET_GITHUB_APP_PRIVATE_KEY }}
-        owner: gitgitgadget
-        repositories: git
-    - uses: actions/create-github-app-token@v1
-      id: git-git-token
-      with:
-        app-id: ${{ secrets.GITGITGADGET_GIT_GITHUB_APP_ID }}
-        private-key: ${{ secrets.GITGITGADGET_GIT_GITHUB_APP_PRIVATE_KEY }}
-        owner: git
-        repositories: git
-    - uses: actions/create-github-app-token@v1
-      id: dscho-git-token
-      with:
-        app-id: ${{ secrets.GITGITGADGET_GIT_GITHUB_APP_ID }}
-        private-key: ${{ secrets.GITGITGADGET_GIT_GITHUB_APP_PRIVATE_KEY }}
-        owner: dscho
-        repositories: git
     - uses: actions/checkout@v5
     - uses: ./init
       with:
