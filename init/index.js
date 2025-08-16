@@ -47,8 +47,9 @@ async function run() {
   for (const user of ["dscho", "xyz"]) {
     console.log(`user ${user} allowed: ${await ci.isAllowed(user)}`)
   }
-  // add a reaction
-  await ci.github.addReaction("dscho", "git", 791752382, "heart")
+  // add a reaction to
+  // https://github.com/dscho/git/pull/29#issuecomment-791608460
+  await ci.github.addReaction("dscho", "git", 791608460, "laugh")
 }
 
 run()
