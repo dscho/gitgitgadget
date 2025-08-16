@@ -6,7 +6,7 @@ async function run() {
   const ci = new CIHelper()
   await ci.setupGitHubAction()
   console.log(
-    `User '${login}' is ${ci.isAllowed(login) ? "" : "not "}allowed to use GitGitGadget.`,
+    `User '${login}' is ${(await ci.isAllowed(login)) ? "" : "not "}allowed to use GitGitGadget.`,
   )
 }
 
