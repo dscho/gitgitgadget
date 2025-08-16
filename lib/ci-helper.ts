@@ -941,7 +941,7 @@ export class CIHelper {
     }
 
     public async isAllowed(username: string): Promise<boolean> {
-        const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.notesPushToken);
+        const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.urlRepo, this.notesPushToken);
         return gitGitGadget.isUserAllowed(username);
     }
 
