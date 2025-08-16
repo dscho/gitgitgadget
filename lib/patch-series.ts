@@ -152,6 +152,11 @@ export class PatchSeries {
             cc.push("Johannes Sixt <j6t@kdbg.org>");
         }
 
+        if (process.env.GITGITGADGET_DRY_RUN) {
+            console.log(`Forcing Patch Series to use dry-run mode`);
+            options = { ...(options || {}), dryRun: true }; // debug mode does not actually do anything
+        }
+
         return new PatchSeries(
             config,
             notes,
