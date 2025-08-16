@@ -17,6 +17,7 @@ import { IPatchSeriesMetadata } from "./patch-series-metadata.js";
 import { IConfig, getExternalConfig, setConfig } from "./project-config.js";
 import { getPullRequestKeyFromURL, pullRequestKey } from "./pullRequestKey.js";
 import { fileURLToPath } from "url";
+import { ISMTPOptions } from "./send-mail.js";
 
 const readFile = util.promisify(fs.readFile);
 type CommentFunction = (comment: string) => Promise<void>;
@@ -42,6 +43,7 @@ export class CIHelper {
     private gggNotesUpdated: boolean;
     private mail2CommitMapUpdated: boolean;
     private notesPushToken: string | undefined;
+    private smtpOptions?: ISMTPOptions;
     protected maxCommitsExceptions: string[];
 
     public static async getConfig(configFile?: string): Promise<IConfig> {
@@ -89,6 +91,10 @@ export class CIHelper {
         if (this.config.repo.owner === repositoryOwner) {
             this.notesPushToken = token;
         }
+    }
+
+    public setSMTPOptions(smtpOptions: ISMTPOptions): void {
+        this.smtpOptions = smtpOptions;
     }
 
     /*
@@ -611,6 +617,7 @@ export class CIHelper {
                 this.workDir,
                 this.urlRepo,
                 this.notesPushToken,
+                this.smtpOptions,
             );
             if (!gitGitGadget.isUserAllowed(comment.author)) {
                 throw new Error(`User ${comment.author} is not yet permitted to use ${this.config.app.displayName}`);
@@ -822,7 +829,13 @@ export class CIHelper {
             await this.github.addPRComment(prKey, redacted);
         };
 
-        const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.urlRepo, this.notesPushToken);
+        const gitGitGadget = await GitGitGadget.get(
+            this.gggConfigDir,
+            this.workDir,
+            this.urlRepo,
+            this.notesPushToken,
+            this.smtpOptions,
+        );
         if (!pr.hasComments && !gitGitGadget.isUserAllowed(pr.author)) {
             const welcome = await CIHelper.getWelcomeMessage(pr.author);
             await this.github.addPRComment(prKey, welcome);
@@ -941,7 +954,13 @@ export class CIHelper {
     }
 
     public async isAllowed(username: string): Promise<boolean> {
-        const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.urlRepo, this.notesPushToken);
+        const gitGitGadget = await GitGitGadget.get(
+            this.gggConfigDir,
+            this.workDir,
+            this.urlRepo,
+            this.notesPushToken,
+            this.smtpOptions,
+        );
         return gitGitGadget.isUserAllowed(username);
     }
 
