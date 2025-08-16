@@ -6,6 +6,7 @@ async function run() {
 
   // help dugite realize where `git` is...
   process.env.LOCAL_GIT_DIRECTORY = "/usr/"
+  process.env.GIT_EXEC_PATH = "/usr/lib/git-core"
 
   console.log(`Git version: ${await CIHelper.git(["--version"])}`)
   console.log(`Git exec path: ${await CIHelper.git(["--exec-path"])}`)
