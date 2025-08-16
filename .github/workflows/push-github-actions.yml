@@ -42,6 +42,7 @@ jobs:
               v1=HEAD &&
               tag_name=v1.0
             else
+              set -x &&
               v1=FETCH_HEAD &&
               tag_name="$(git name-rev '--refs=v[0-9]*' $v1)" &&
               case "$tag_name" in
