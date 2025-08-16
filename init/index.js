@@ -4,7 +4,7 @@ async function run() {
   const core = CIHelper.getActionsCore()
 
   // help dugite realize where `git` is...
-  // process.env.LOCAL_GIT_DIRECTORY = "/usr/"
+  process.env.LOCAL_GIT_DIRECTORY = "/usr/"
 
   const config = await CIHelper.getConfig()
   await CIHelper.initializeWorkDir("git", config)
