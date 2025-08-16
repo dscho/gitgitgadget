@@ -9,6 +9,7 @@ on:
       - '**/*.ts'
       - 'package*.json'
       - 'res/**/*'
+      - '.github/workflows/push-github-actions.yml'
 
 permissions:
   contents: write
