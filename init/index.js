@@ -29,8 +29,13 @@ async function run() {
   }
 
   const config = await CIHelper.getConfig()
+  console.log(
+    `initializing work directory with config: ${JSON.stringify(config)}`,
+  )
   await CIHelper.initializeWorkDir("git", config)
+  console.log(`constructing CIHelper`)
   const ci = new CIHelper("git", config, true)
+  console.log(`setup done`)
 
   ci.setAccessToken("gitgitgadget", core.getInput("gitgitgadget-git-token"))
   ci.setAccessToken("git", core.getInput("git-git-token"))
