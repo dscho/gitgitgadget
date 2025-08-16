@@ -5,7 +5,7 @@ import { spawnSync } from "child_process";
 import addressparser from "nodemailer/lib/addressparser/index.js";
 import path from "path";
 import { ILintError, LintCommit } from "./commit-lint.js";
-import { commitExists, git, emptyTreeName, revParse } from "./git.js";
+import { commitExists, git, emptyTreeName, IGitOptions, revParse } from "./git.js";
 import { GitNotes } from "./git-notes.js";
 import { GitGitGadget, IGitGitGadgetOptions } from "./gitgitgadget.js";
 import { getConfig } from "./gitgitgadget-config.js";
@@ -308,6 +308,10 @@ export class CIHelper {
 
     public static getActionsCore(): typeof import("@actions/core") {
         return core;
+    }
+
+    public static async git(args: string[], options?: IGitOptions): Promise<string> {
+        return await git(args, options);
     }
 
     /*
