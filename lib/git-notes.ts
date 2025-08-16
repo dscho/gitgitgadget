@@ -20,6 +20,10 @@ type TemporaryNoteIndex = {
 
 export class GitNotes {
     public async push(url: string, token: string | undefined = undefined): Promise<void> {
+        if (process.env.GITGITGADGET_DEBUG) {
+            console.log(`Would push '${this.notesRef}' to ${url}`);
+            return; // debug mode does not actually do anything
+        }
         const auth = !token
             ? []
             : [
