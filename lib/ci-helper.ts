@@ -218,18 +218,20 @@ export class CIHelper {
             const latestMailRepoRevision = fetchLatestMailRepoRevision.split("\t")[0];
             console.timeEnd("Retrieving latest mail repo revision");
             console.time("verify that Git notes do not yet exist");
-            const existingNotes = await git(
-                [
-                    "ls-remote",
-                    "origin",
-                    GitNotes.defaultNotesRef,
-                    "refs/notes/mail-to-commit",
-                    "refs/notes/commit-to-mail",
-                ],
-                {
-                    workDir: this.workDir,
-                },
-            );
+            const existingNotes = process.env.GITGITGADGET_DRY_RUN
+                ? ""
+                : await git(
+                      [
+                          "ls-remote",
+                          "origin",
+                          GitNotes.defaultNotesRef,
+                          "refs/notes/mail-to-commit",
+                          "refs/notes/commit-to-mail",
+                      ],
+                      {
+                          workDir: this.workDir,
+                      },
+                  );
             if (existingNotes !== "") {
                 throw new Error(`Git notes already exist in ${this.workDir}:\n${existingNotes}`);
             }
