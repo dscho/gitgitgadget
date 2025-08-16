@@ -2,7 +2,7 @@ name: Push GitHub Actions
 on:
   push:
     branches:
-      - main
+      - github-action
     paths:
       - '**/action.yml'
       - '**/*.js'
