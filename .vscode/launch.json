@@ -20,7 +20,9 @@
             "runtimeExecutable": null,
             "env": {
                 "NODE_ENV": "development",
-                "GITGITGADGET_DRY_RUN": "1"
+                "GITGITGADGET_DRY_RUN": "1",
+                "GITHUB_ACTIONS": "true",
+                "INPUT_INITIAL-USER": "moi-meme"
             },
             "console": "integratedTerminal",
             "sourceMaps": true,
