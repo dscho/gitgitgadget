@@ -36,7 +36,7 @@ jobs:
             git config --local user.name "GitGitGadget CI" &&
             git config --local user.email "ci@noreply.github.com" &&
 
-            if ! git fetch origin v1
+            if ! git fetch --tags origin v1
             then
               # Starting from scratch
               v1=HEAD &&
