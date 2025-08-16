@@ -935,6 +935,11 @@ export class CIHelper {
         return await git(args, options);
     }
 
+    public async isAllowed(username: string): Promise<boolean> {
+        const gitGitGadget = await GitGitGadget.get(this.gggConfigDir, this.workDir, this.notesPushToken);
+        return gitGitGadget.isUserAllowed(username);
+    }
+
     private async getPRInfo(prKey: pullRequestKey): Promise<IPullRequestInfo> {
         const pr = await this.github.getPRInfo(prKey);
 
