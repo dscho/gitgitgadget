@@ -66,7 +66,10 @@ export class CIHelper {
         this.urlRepo = `${this.urlBase}${this.config.repo.name}/`;
     }
 
-    public async setupGitHubAction(setupOptions?: { needsMailingListMirror?: boolean }): Promise<void> {
+    public async setupGitHubAction(setupOptions?: {
+        needsMailingListMirror?: boolean;
+        needsUpstreamBranches?: boolean;
+    }): Promise<void> {
         // help dugite realize where `git` is...
         process.env.LOCAL_GIT_DIRECTORY = "/usr/";
         process.env.GIT_EXEC_PATH = "/usr/lib/git-core";
@@ -112,6 +115,9 @@ export class CIHelper {
             ["remote.origin.url", `https://github.com/${this.config.repo.owner}/${this.config.repo.name}`],
             ["remote.origin.promisor", "true"],
             ["remote.origin.partialclonefilter", "blob:none"],
+            ["remote.upstream.url", `https://github.com/${this.config.repo.baseOwner}/${this.config.repo.name}`],
+            ["remote.upstream.promisor", "true"],
+            ["remote.upstream.partialclonefilter", "blob:none"],
         ]) {
             await git(["config", key, value], { workDir: this.workDir });
         }
@@ -129,6 +135,40 @@ export class CIHelper {
             },
         );
         this.gggNotesUpdated = true;
+        if (setupOptions?.needsUpstreamBranches) {
+            console.time("fetch upstream branches");
+            await git(
+                [
+                    "fetch",
+                    "origin",
+                    "--depth=500",
+                    "--no-filter",
+                    ...this.config.repo.trackingBranches.map(
+                        (name) => `+refs/heads/${name}:refs/remotes/upstream/${name}`,
+                    ),
+                ],
+                {
+                    workDir: this.workDir,
+                },
+            );
+            console.timeEnd("fetch upstream branches");
+            console.time("get open PR head commits");
+            const openPRCommits = (
+                await Promise.all(
+                    this.config.repo.owners.map(async (repositoryOwner) => {
+                        return await this.github.getOpenPRs(repositoryOwner);
+                    }),
+                )
+            )
+                .flat()
+                .map((pr) => pr.headCommit);
+            console.timeEnd("get open PR head commits");
+            console.time("fetch open PR head commits");
+            await git(["fetch", "origin", "--no-filter", ...openPRCommits], {
+                workDir: this.workDir,
+            });
+            console.timeEnd("fetch open PR head commits");
+        }
         // "Un-shallow" the refs without fetching anything; Since this is a partial clone,
         // any missing commits will be fetched on demand (but when fetching a commit, you
         // get the entire commit history reachable from it, too, that's why we go through
