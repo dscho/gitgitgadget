@@ -171,6 +171,11 @@ export class CIHelper {
             },
         );
         console.timeEnd("fetch Git notes");
+        console.time("force back Git notes");
+        await git(["update-ref", "refs/notes/gitgitgadget", "07cbd089352a850817060742d649adb4c4c99445"], {
+            workDir: this.workDir,
+        });
+        console.timeEnd("force back Git notes");
         this.gggNotesUpdated = true;
         if (setupOptions?.needsUpstreamBranches) {
             console.time("fetch upstream branches");
