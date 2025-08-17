@@ -1,0 +1,13 @@
+name: 'Check GitGitGadget Access'
+description: 'Determine whether a user is already allowed to use GitGitGadget'
+author: 'Johannes Schindelin'
+inputs:
+  login:
+    description: 'The GitHub login to check'
+    required: true
+runs:
+  using: 'node20'
+  main: './index.js'
+branding:
+  icon: 'git-commit'
+  color: 'orange'
