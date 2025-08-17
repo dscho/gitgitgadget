@@ -175,6 +175,14 @@ export class CIHelper {
         await git(["update-ref", "refs/notes/gitgitgadget", "07cbd089352a850817060742d649adb4c4c99445"], {
             workDir: this.workDir,
         });
+        if (setupOptions?.needsMailToCommitNotes) {
+            await git(["update-ref", "refs/notes/commit-to-mail", "de5f0ffd77eabc913e560acb4f3303b6e3df4163"], {
+                workDir: this.workDir,
+            });
+            await git(["update-ref", "refs/notes/mail-to-commit", "92b87ef409b0858d188a371a6af30aa477bc549f"], {
+                workDir: this.workDir,
+            });
+        }
         this.gggNotesUpdated = true;
         if (setupOptions?.needsUpstreamBranches) {
             console.time("fetch upstream branches");
