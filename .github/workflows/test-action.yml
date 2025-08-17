@@ -3,19 +3,15 @@ name: Test the GitHub Action
 on:
   workflow_dispatch:
 
+env:
+  GITGITGADGET_DRY_RUN: 1
+
 jobs:
   test-action:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/create-github-app-token@v1
-      id: gitgitgadget-git-token
-      with:
-        app-id: ${{ secrets.GITGITGADGET_GITHUB_APP_ID }}
-        private-key: ${{ secrets.GITGITGADGET_GITHUB_APP_PRIVATE_KEY }}
-        owner: gitgitgadget
-        repositories: git
     - uses: actions/checkout@v5
     - uses: ./update-mail-to-commit-notes
       with:
-        gitgitgadget-git-access-token: ${{ steps.gitgitgadget-git-token.outputs.token }}
+        gitgitgadget-git-access-token: intentionally left blank
