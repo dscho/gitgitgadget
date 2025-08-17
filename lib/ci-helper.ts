@@ -173,6 +173,14 @@ export class CIHelper {
         );
         console.timeEnd("fetch Git notes");
         this.gggNotesUpdated = true;
+        if (setupOptions?.needsMailToCommitNotes) {
+            await git(["update-ref", "refs/notes/commit-to-mail", "de5f0ffd77eabc913e560acb4f3303b6e3df4163"], {
+                workDir: this.workDir,
+            });
+            await git(["update-ref", "refs/notes/mail-to-commit", "92b87ef409b0858d188a371a6af30aa477bc549f"], {
+                workDir: this.workDir,
+            });
+        }
         if (setupOptions?.needsUpstreamBranches) {
             console.time("fetch upstream branches");
             await git(
