@@ -184,6 +184,18 @@ export class CIHelper {
             workDir: this.workDir,
         });
         console.timeEnd("forcing `gitgitgadget` notes refs back in time");
+        if (setupOptions?.needsMailToCommitNotes) {
+            console.time("forcing `commit-to-mail` notes refs back in time");
+            await git(["update-ref", "refs/notes/commit-to-mail", "de5f0ffd77eabc913e560acb4f3303b6e3df4163"], {
+                workDir: this.workDir,
+            });
+            console.timeEnd("forcing `commit-to-mail` notes refs back in time");
+            console.time("forcing `mail-to-commit` notes refs back in time");
+            await git(["update-ref", "refs/notes/mail-to-commit", "92b87ef409b0858d188a371a6af30aa477bc549f"], {
+                workDir: this.workDir,
+            });
+            console.timeEnd("forcing `mail-to-commit` notes refs back in time");
+        }
         this.gggNotesUpdated = true;
         if (setupOptions?.needsUpstreamBranches) {
             console.time("fetch upstream branches");
