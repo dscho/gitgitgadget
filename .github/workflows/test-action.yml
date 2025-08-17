@@ -1,7 +1,7 @@
 name: Test the GitHub Action
 
 on:
-  workflow_dispatch:
+  push:
 
 env:
   GITGITGADGET_DEBUG: 1
