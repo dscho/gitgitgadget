@@ -266,7 +266,7 @@ export class CIHelper {
     }
 
     public parsePRURLInput(): { owner: string; repo: string; prNumber: number } {
-        const prCommentUrl = core.getInput("pr-url");
+        const prCommentUrl = core.getInput("pr-url") || "https://github.com/dscho/git/pull/29";
 
         const [, owner, repo, prNumber] =
             prCommentUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/) || [];
