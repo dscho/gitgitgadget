@@ -45,6 +45,7 @@ export class CIHelper {
     private notesPushToken: string | undefined;
     private smtpOptions?: ISMTPOptions;
     protected maxCommitsExceptions: string[];
+    protected mailingListMirror: string | undefined;
 
     public static async getConfig(configFile?: string): Promise<IConfig> {
         return configFile ? await getExternalConfig(configFile) : getConfig();
@@ -65,7 +66,7 @@ export class CIHelper {
         this.urlRepo = `${this.urlBase}${this.config.repo.name}/`;
     }
 
-    public async setupGitHubAction(): Promise<void> {
+    public async setupGitHubAction(setupOptions?: { needsMailingListMirror?: boolean }): Promise<void> {
         // help dugite realize where `git` is...
         process.env.LOCAL_GIT_DIRECTORY = "/usr/";
         process.env.GIT_EXEC_PATH = "/usr/lib/git-core";
@@ -133,6 +134,60 @@ export class CIHelper {
         // get the entire commit history reachable from it, too, that's why we go through
         // the stunt of making a shallow-not-shallow fetch here).
         await fs.promises.rm(path.join(this.workDir, "shallow"), { force: true });
+
+        if (setupOptions?.needsMailingListMirror) {
+            this.mailingListMirror = "git-mailing-list-mirror.git";
+            const epoch = 1;
+
+            // eslint-disable-next-line security/detect-non-literal-fs-filename
+            if (!fs.existsSync(this.mailingListMirror)) {
+                await git(["init", "--bare", "--initial-branch", this.config.mailrepo.branch, this.mailingListMirror]);
+            }
+
+            // First fetch from GitGitGadget's mirror, which supports partial clones
+            for (const [key, value] of [
+                ["remote.mirror.url", `https://github.com/${this.config.repo.owner}/git-mailing-list-mirror`],
+                ["remote.mirror.promisor", "true"],
+                ["remote.mirror.partialclonefilter", "blob:none"],
+            ]) {
+                await git(["config", key, value], { workDir: this.mailingListMirror });
+            }
+            console.time("fetch mailing list mirror");
+            await git(
+                [
+                    "-c",
+                    "remote.mirror.promisor=false", // let's fetch the mails with all of their contents
+                    "fetch",
+                    "mirror",
+                    "--depth=50",
+                    `+refs/heads/lore-${epoch}:refs/heads/lore-${epoch}`,
+                ],
+                {
+                    workDir: this.mailingListMirror,
+                },
+            );
+            console.timeEnd("fetch mailing list mirror");
+
+            // Now update the head branch from the authoritative repository
+            await git(["config", "remote.origin.url", `${this.config.mailrepo.url.replace(/\/*$/, "")}/${epoch}`], {
+                workDir: this.mailingListMirror,
+            });
+            await git(
+                [
+                    "fetch",
+                    "origin",
+                    `+refs/heads/${this.config.mailrepo.branch}:refs/heads/${this.config.mailrepo.branch}`,
+                ],
+                {
+                    workDir: this.mailingListMirror,
+                },
+            );
+            // "Un-shallow" the refs without fetching anything; Since this is a partial clone,
+            // any missing commits will be fetched on demand (but when fetching a commit, you
+            // get the entire commit history reachable from it, too, that's why we go through
+            // the stunt of making a shallow-not-shallow fetch here).
+            await fs.promises.rm(path.join(this.mailingListMirror, "shallow"), { force: true });
+        }
     }
 
     public parsePRCommentURLInput(): { owner: string; repo: string; prNumber: number; commentId: number } {
@@ -921,7 +976,13 @@ export class CIHelper {
         }
     }
 
-    public async handleNewMails(mailArchiveGitDir: string, onlyPRs?: Set<number>): Promise<boolean> {
+    public async handleNewMails(mailArchiveGitDir?: string, onlyPRs?: Set<number>): Promise<boolean> {
+        if (!mailArchiveGitDir) {
+            mailArchiveGitDir = this.mailingListMirror;
+            if (!mailArchiveGitDir) {
+                throw new Error("No mail archive directory specified (forgot to run `setupGitHubAction()`?)");
+            }
+        }
         await git(["fetch"], { workDir: mailArchiveGitDir });
         const prFilter = !onlyPRs
             ? undefined
