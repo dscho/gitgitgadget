@@ -156,6 +156,7 @@ export class CIHelper {
         if (setupOptions?.needsMailToCommitNotes) {
             notesRefs.push("refs/notes/mail-to-commit", "refs/notes/commit-to-mail");
         }
+        console.time("fetch Git notes");
         await git(
             [
                 "-c",
@@ -169,6 +170,7 @@ export class CIHelper {
                 workDir: this.workDir,
             },
         );
+        console.timeEnd("fetch Git notes");
         this.gggNotesUpdated = true;
         if (setupOptions?.needsUpstreamBranches) {
             console.time("fetch upstream branches");
