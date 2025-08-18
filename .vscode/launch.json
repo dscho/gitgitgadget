@@ -13,7 +13,7 @@
                 // "--nolazy",
             ],
             "args": [
-                "${workspaceFolder}/update-mail-to-commit-notes/index.js"
+                "${workspaceFolder}/handle-pr-comment/index.js"
             ],
             "stopOnEntry": false,
             "cwd": "${workspaceFolder}",
