@@ -162,6 +162,7 @@ export class CIHelper {
                 "-c",
                 "remote.origin.promisor=false", // let's fetch the notes with all of their blobs
                 "fetch",
+                "--no-tags",
                 "origin",
                 "--depth=1",
                 ...notesRefs.map((ref) => `+${ref}:${ref}`),
@@ -183,6 +184,7 @@ export class CIHelper {
                 [
                     "fetch",
                     "origin",
+                    "--no-tags",
                     "--depth=500",
                     "--no-filter",
                     ...this.config.repo.trackingBranches.map(
@@ -206,16 +208,50 @@ export class CIHelper {
                 .map((pr) => pr.headCommit);
             console.timeEnd("get open PR head commits");
             console.time("fetch open PR head commits");
-            await git(["fetch", "origin", "--no-filter", ...openPRCommits], {
+            await git(["fetch", "--no-tags", "origin", "--no-filter", ...openPRCommits], {
                 workDir: this.workDir,
             });
             console.timeEnd("fetch open PR head commits");
         }
-        // "Un-shallow" the refs without fetching anything; Since this is a partial clone,
-        // any missing commits will be fetched on demand (but when fetching a commit, you
-        // get the entire commit history reachable from it, too, that's why we go through
-        // the stunt of making a shallow-not-shallow fetch here).
-        await fs.promises.rm(path.join(this.workDir, "shallow"), { force: true });
+        // "Unshallow" the refs by fetching the shallow commits with a tree-less filter.
+        // This is needed because Git will otherwise fall over left and right when trying
+        // to determine merge bases with really old branches.
+        const unshallow = async (workDir: string) => {
+            // const shallowFile = path.join(workDir, "shallow");
+            // eslint-disable-next-line security/detect-non-literal-fs-filename
+            // const shallowCommits = await fs.promises.readFile(shallowFile, "utf8");
+            console.time(`Making ${workDir} non-shallow`);
+            // Need to remove the `shallow` file, otherwise `rev-parse` will not return the parents
+            // await fs.promises.rm(shallowFile, { force: true });
+            // const shallowParents = (await git(
+            //     // `rev-parse` has no `--stdin` option, so we have to hope that we're not
+            //     // running over command line length limits here.
+            //     [
+            //         "rev-parse",
+            //         ...shallowCommits
+            //             .trimEnd()
+            //             .split("\n")
+            //             // `<commit>^@` is expanded to the commit's parents
+            //             .map((oid) => `${oid}^@`),
+            //     ],
+            //     {
+            //         workDir,
+            //     },
+            // )).trimEnd().split("\n");
+            // console.log(
+            //     `Fetched ${shallowParents.join(", ")} to unshallow ${workDir}:\n${await git(
+            //         ["-c", "remote.origin.partialclonefilter=tree:0", "rev-list", "--count", "--stdin"],
+            //         {
+            //             // fetch the parents (plus commit history) of the shallow commits
+            //             stdin: shallowParents,
+            //             workDir,
+            //         },
+            //     )} commits to unshallow ${workDir}`,
+            // );
+            console.log(await git(["fetch", "--filter=tree:0", "origin", "--unshallow"], { workDir }));
+            console.timeEnd(`Making ${workDir} non-shallow`);
+        };
+        await unshallow(this.workDir);
 
         if (setupOptions?.needsMailingListMirror) {
             this.mailingListMirror = "git-mailing-list-mirror.git";
@@ -278,17 +314,13 @@ export class CIHelper {
                 // eslint-disable-next-line security/detect-non-literal-fs-filename
                 await fs.promises.writeFile(path.join(this.mailingListMirror, "tae-list.txt"), "");
             }
-            // "Un-shallow" the refs without fetching anything; Since this is a partial clone,
-            // any missing commits will be fetched on demand (but when fetching a commit, you
-            // get the entire commit history reachable from it, too, that's why we go through
-            // the stunt of making a shallow-not-shallow fetch here).
-            await fs.promises.rm(path.join(this.mailingListMirror, "shallow"), { force: true });
+            await unshallow(this.mailingListMirror);
         }
     }
 
     public parsePRCommentURLInput(): { owner: string; repo: string; prNumber: number; commentId: number } {
         const prCommentUrl =
-            core.getInput("pr-comment-url") || "https://github.com/gitgitgadget/git/pull/1947#issuecomment-3193794374";
+            core.getInput("pr-comment-url") || "https://github.com/gitgitgadget/git/pull/1615#issuecomment-3197439884";
 
         const [, owner, repo, prNumber, commentId] =
             prCommentUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)#issuecomment-(\d+)$/) || [];
@@ -825,7 +857,7 @@ export class CIHelper {
             const prKey = getPullRequestKeyFromURL(prMeta.pullRequestURL);
             const fetchURL = `https://github.com/${prKey.owner}/${prKey.repo}`;
             const fetchRef = `refs/pull/${prKey.pull_number}/head`;
-            await git(["fetch", fetchURL, fetchRef, prMeta.latestTag], {
+            await git(["fetch", "--no-tags", fetchURL, fetchRef, prMeta.latestTag], {
                 workDir: this.workDir,
             });
         }
