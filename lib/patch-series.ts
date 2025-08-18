@@ -144,6 +144,11 @@ export class PatchSeries {
             options.rangeDiff = rangeDiff;
         }
 
+        if (process.env.GITGITGADGET_DEBUG) {
+            console.log(`Forcing Patch Series to use dry-run mode`);
+            options = { ...(options || {}), dryRun: true }; // debug mode does not actually do anything
+        }
+
         return new PatchSeries(notes, options, project, metadata, rangeDiffRanges, patchCount, coverLetter, senderName);
     }
 
