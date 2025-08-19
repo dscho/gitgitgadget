@@ -79,10 +79,6 @@ export class GitHubGlue {
         const [, short, completedAt] = match;
         const url = `https://github.com/${baseOwner}/${this.repo}/commit/${gitGitCommit}`;
 
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            console.log(`Would annotate ${originalCommit}:\n${gitGitCommit} as ${short} at ${completedAt}\n${url}`);
-            return -1; // debug mode does not actually do anything
-        }
         await this.ensureAuthenticated(repositoryOwner);
         const checks = await this.client.rest.checks.create({
             completed_at: completedAt,
@@ -181,10 +177,6 @@ export class GitHubGlue {
      * @returns the comment ID and the URL to the comment
      */
     public async addPRComment(pullRequest: pullRequestKeyInfo, comment: string): Promise<{ id: number; url: string }> {
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            console.log(`Would add comment to ${JSON.stringify(pullRequest)}:\n${comment}`);
-            return { id: -1, url: "" }; // debug mode does not actually do anything
-        }
         const prKey = getPullRequestKey(pullRequest);
 
         await this.ensureAuthenticated(prKey.owner);
@@ -216,10 +208,6 @@ export class GitHubGlue {
         comment: string,
         line?: number,
     ): Promise<{ id: number; url: string }> {
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            console.log(`Would add comment to ${JSON.stringify(pullRequest)}, commit ${commit}:\n${comment}`);
-            return { id: -1, url: "" }; // debug mode does not actually do anything
-        }
         const prKey = getPullRequestKey(pullRequest);
 
         await this.ensureAuthenticated(prKey.owner);
@@ -253,10 +241,6 @@ export class GitHubGlue {
         id: number,
         comment: string,
     ): Promise<{ id: number; url: string }> {
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            console.log(`Would add reply to ${JSON.stringify(pullRequest)}, id ${id}:\n${comment}`);
-            return { id: -1, url: "" }; // debug mode does not actually do anything
-        }
         const prKey = getPullRequestKey(pullRequest);
 
         await this.ensureAuthenticated(prKey.owner);
@@ -281,10 +265,6 @@ export class GitHubGlue {
      * @returns the PR number
      */
     public async updatePR(prKey: pullRequestKey, body?: string, title?: string): Promise<number> {
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            console.log(`Would add update ${JSON.stringify(prKey)}:\ntitle: ${title}\nbody: ${body}`);
-            return prKey.pull_number; // debug mode does not actually do anything
-        }
         await this.ensureAuthenticated(prKey.owner);
 
         const result = await this.client.rest.pulls.update({
@@ -297,10 +277,6 @@ export class GitHubGlue {
     }
 
     public async addPRLabels(pullRequest: pullRequestKeyInfo, labels: string[]): Promise<string[]> {
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            console.log(`Would add labels to ${JSON.stringify(pullRequest)}:\n${labels.join(", ")}`);
-            return labels; // debug mode does not actually do anything
-        }
         const prKey = getPullRequestKey(pullRequest);
 
         await this.ensureAuthenticated(prKey.owner);
@@ -314,10 +290,6 @@ export class GitHubGlue {
     }
 
     public async closePR(pullRequest: pullRequestKeyInfo, viaMergeCommit: string): Promise<number> {
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            console.log(`Would add close ${JSON.stringify(pullRequest)}:\n${viaMergeCommit}`);
-            return -1; // debug mode does not actually do anything
-        }
         const prKey = getPullRequestKey(pullRequest);
 
         await this.ensureAuthenticated(prKey.owner);
@@ -482,16 +454,6 @@ export class GitHubGlue {
      * @param login the GitHub login
      */
     public async getGitHubUserInfo(login: string): Promise<IGitHubUser> {
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            if (login === "dscho")
-                return {
-                    email: "dscho@me.com",
-                    login,
-                    name: "Ohai!",
-                    type: "user",
-                };
-            throw new Error(`Cannot mock getByUsername: ${login}`);
-        }
         // required to get email
         await this.ensureAuthenticated(this.authenticated || this.owner);
 
