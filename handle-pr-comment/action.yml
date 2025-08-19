@@ -11,8 +11,17 @@ inputs:
   dscho-git-access-token:
     description: 'The access token to work on dscho/git'
     required: true
-  smtp-options:
-    description: 'The SMTP options to use for sending emails'
+  smtp-host:
+    description: 'The SMTP host to use for sending emails'
+    required: true
+  smtp-user:
+    description: 'The SMTP user when sending emails'
+    required: true
+  smtp-opts:
+    description: 'Extra SMTP options in JSON format'
+    required: false
+  smtp-pass:
+    description: 'The SMTP password to use for sending emails'
     required: true
   pr-comment-url:
     description: 'The URL of the PR comment to add a reaction to'
