@@ -54,6 +54,23 @@ export class CIHelper {
     }
 
     public constructor(workDir: string = "git.git", config?: IConfig, skipUpdate?: boolean, gggConfigDir = ".") {
+        if (process.env.GITGITGADGET_DRY_RUN) {
+            // Avoid letting VS Code's `GIT_ASKPASS` any push succeed
+            Object.keys(process.env).forEach((key) => {
+                if (key.startsWith("GIT_") || key.startsWith("VSCODE_")) {
+                    console.warn(`Deleting environment variable ${key}`);
+                    delete process.env[key];
+                }
+            });
+            process.env.GIT_CONFIG_NOSYSTEM = "1";
+            process.env.GIT_CONFIG_GLOBAL = "does-not-exist";
+
+            // Disable any credential helper
+            process.env.GIT_CONFIG_PARAMETERS = [process.env.GIT_CONFIG_PARAMETERS, "'credential.helper='"]
+                .filter((e) => e)
+                .join(" ");
+        }
+
         this.config = config !== undefined ? setConfig(config) : getConfig();
         this.gggConfigDir = gggConfigDir;
         this.workDir = workDir;
@@ -129,6 +146,15 @@ export class CIHelper {
             // Ignore, for now
         }
 
+        if (!this.smtpOptions && process.env.GITGITGADGET_DRY_RUN) {
+            this.smtpOptions = {
+                smtpUser: "user@example.com",
+                smtpHost: "smtp.example.com",
+                smtpPass: "password",
+            };
+            console.log("Using debug SMTP options:", this.smtpOptions);
+        }
+
         // eslint-disable-next-line security/detect-non-literal-fs-filename
         if (!fs.existsSync(this.workDir)) await git(["init", "--bare", "--initial-branch", "unused", this.workDir]);
         for (const [key, value] of [
@@ -162,6 +188,23 @@ export class CIHelper {
             },
         );
         console.timeEnd("fetch Git notes");
+        console.time("forcing `gitgitgadget` notes refs back in time");
+        await git(["update-ref", "refs/notes/gitgitgadget", "07cbd089352a850817060742d649adb4c4c99445"], {
+            workDir: this.workDir,
+        });
+        console.timeEnd("forcing `gitgitgadget` notes refs back in time");
+        if (setupOptions?.needsMailToCommitNotes) {
+            console.time("forcing `commit-to-mail` notes refs back in time");
+            await git(["update-ref", "refs/notes/commit-to-mail", "de5f0ffd77eabc913e560acb4f3303b6e3df4163"], {
+                workDir: this.workDir,
+            });
+            console.timeEnd("forcing `commit-to-mail` notes refs back in time");
+            console.time("forcing `mail-to-commit` notes refs back in time");
+            await git(["update-ref", "refs/notes/mail-to-commit", "92b87ef409b0858d188a371a6af30aa477bc549f"], {
+                workDir: this.workDir,
+            });
+            console.timeEnd("forcing `mail-to-commit` notes refs back in time");
+        }
         this.gggNotesUpdated = true;
         if (setupOptions?.needsUpstreamBranches) {
             console.time("fetch upstream branches");
