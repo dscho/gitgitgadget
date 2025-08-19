@@ -438,7 +438,7 @@ export class CIHelper {
     }
 
     public parsePRCommentURLInput(): { owner: string; repo: string; pull_number: number; comment_id: number } {
-        return getPullRequestCommentKeyFromURL(core.getInput("pr-comment-url"));
+        return getPullRequestCommentKeyFromURL(core.getInput("pr-comment-url") || "https://github.com/gitgitgadget/git/pull/1615#issuecomment-3197439884");
     }
 
     public parsePRURLInput(): { owner: string; repo: string; pull_number: number } {
