@@ -53,23 +53,6 @@ export class CIHelper {
     }
 
     public constructor(workDir: string = "git.git", config?: IConfig, skipUpdate?: boolean, gggConfigDir = ".") {
-        if (process.env.GITGITGADGET_DRY_RUN) {
-            // Avoid letting VS Code's `GIT_ASKPASS` any push succeed
-            Object.keys(process.env).forEach((key) => {
-                if (key.startsWith("GIT_") || key.startsWith("VSCODE_")) {
-                    console.warn(`Deleting environment variable ${key}`);
-                    delete process.env[key];
-                }
-            });
-            process.env.GIT_CONFIG_NOSYSTEM = "1";
-            process.env.GIT_CONFIG_GLOBAL = "does-not-exist";
-
-            // Disable any credential helper
-            process.env.GIT_CONFIG_PARAMETERS = [process.env.GIT_CONFIG_PARAMETERS, "'credential.helper='"]
-                .filter((e) => e)
-                .join(" ");
-        }
-
         this.config = config !== undefined ? setConfig(config) : getConfig();
         this.gggConfigDir = gggConfigDir;
         this.workDir = workDir;
@@ -128,15 +111,6 @@ export class CIHelper {
             }
         } catch (e) {
             // Ignore, for now
-        }
-
-        if (!this.smtpOptions && process.env.GITGITGADGET_DRY_RUN) {
-            this.smtpOptions = {
-                smtpUser: "user@example.com",
-                smtpHost: "smtp.example.com",
-                smtpPass: "password",
-            };
-            console.log("Using debug SMTP options:", this.smtpOptions);
         }
 
         // eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -273,9 +247,7 @@ export class CIHelper {
     }
 
     public parsePRCommentURLInput(): { owner: string; repo: string; prNumber: number; commentId: number } {
-        const prCommentUrl =
-            core.getInput("pr-comment-url") || "https://github.com/gitgitgadget/git/pull/1615#issuecomment-3197439884";
-
+        const prCommentUrl = core.getInput("pr-comment-url");
         const [, owner, repo, prNumber, commentId] =
             prCommentUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)#issuecomment-(\d+)$/) || [];
         if (!this.config.repo.owners.includes(owner) || repo !== "git") {
