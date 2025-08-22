@@ -105,7 +105,9 @@ export class CIHelper {
             }
             // need to override GIT_EXEC_PATH, so that Dugite can find the `git-remote-https` executable,
             // see https://github.com/desktop/dugite/blob/v2.7.1/lib/git-environment.ts#L44-L64
-            process.env.GIT_EXEC_PATH = await git(["--exec-path"]);
+            // Also: We cannot use `await git(["--exec-path"]);` because that would use Dugite, which would
+            // override `GIT_EXEC_PATH` and then `git --exec-path` would report _that_...
+            process.env.GIT_EXEC_PATH = spawnSync("/usr/bin/git", ["--exec-path"]).stdout.toString("utf-8");
             if (process.env.GITGITGADGET_DRY_RUN) console.error(`GIT_EXEC_PATH: '${process.env.GIT_EXEC_PATH}'`);
             break;
         }
