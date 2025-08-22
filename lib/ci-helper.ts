@@ -99,6 +99,12 @@ export class CIHelper {
             // eslint-disable-next-line security/detect-non-literal-fs-filename
             .filter((p) => p.endsWith(`${path.sep}${stripSuffix}`) && fs.existsSync(p))) {
             process.env.LOCAL_GIT_DIRECTORY = `${gitPath.substring(0, gitPath.length - stripSuffix.length)}${path.sep}`;
+            if (process.env.GITGITGADGET_DRY_RUN) {
+                console.error(
+                    `Found Git at ${gitPath}, setting LOCAL_GIT_DIRECTORY to ${process.env.LOCAL_GIT_DIRECTORY}`,
+                    `GIT_EXEC_PATH: '${process.env.GIT_EXEC_PATH}'`,
+                );
+            }
             break;
         }
 
