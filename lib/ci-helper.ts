@@ -263,7 +263,7 @@ export class CIHelper {
             for (const [key, value] of [
                 ["remote.mirror.url", `https://github.com/${this.config.repo.owner}/git-mailing-list-mirror`],
                 ["remote.mirror.promisor", "true"],
-                ["remote.mirror.partialclonefilter", "blob:none"],
+                ["remote.mirror.partialCloneFilter", "blob:none"],
             ]) {
                 await git(["config", key, value], { workDir: this.mailingListMirror });
             }
