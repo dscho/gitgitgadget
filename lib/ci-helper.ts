@@ -98,16 +98,15 @@ export class CIHelper {
             .map((p) => path.normalize(`${p}${path.sep}${gitExecutable}`))
             // eslint-disable-next-line security/detect-non-literal-fs-filename
             .filter((p) => p.endsWith(`${path.sep}${stripSuffix}`) && fs.existsSync(p))) {
+            if (process.env.GITGITGADGET_DRY_RUN) console.error(`Found Git at ${gitPath}`);
             process.env.LOCAL_GIT_DIRECTORY = gitPath.substring(0, gitPath.length - stripSuffix.length);
+            if (process.env.GITGITGADGET_DRY_RUN) {
+                console.error(`Setting LOCAL_GIT_DIRECTORY to ${process.env.LOCAL_GIT_DIRECTORY}`);
+            }
             // need to override GIT_EXEC_PATH, so that Dugite can find the `git-remote-https` executable,
             // see https://github.com/desktop/dugite/blob/v2.7.1/lib/git-environment.ts#L44-L64
             process.env.GIT_EXEC_PATH = await git(["--exec-path"]);
-            if (process.env.GITGITGADGET_DRY_RUN) {
-                console.error(
-                    `Found Git at ${gitPath}, setting LOCAL_GIT_DIRECTORY to ${process.env.LOCAL_GIT_DIRECTORY}`,
-                    `GIT_EXEC_PATH: '${process.env.GIT_EXEC_PATH}'`,
-                );
-            }
+            if (process.env.GITGITGADGET_DRY_RUN) console.error(`GIT_EXEC_PATH: '${process.env.GIT_EXEC_PATH}'`);
             break;
         }
 
