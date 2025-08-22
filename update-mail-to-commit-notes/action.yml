@@ -2,7 +2,7 @@ name: 'Update the mail <-> commit notes'
 description: 'Updates the mapping between commits and patch emails, stored in the `mail-to-commit` and `commit-to-mail` Git notes refs.'
 author: 'Johannes Schindelin'
 inputs:
-  gitgitgadget-git-access-token:
+  pr-repo-token:
     description: 'The access token to work on gitgitgadget/git'
     required: true
 runs:

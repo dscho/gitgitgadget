@@ -2,13 +2,13 @@ name: 'Handle new mails'
 description: 'Processes new mails on the Git mailing list'
 author: 'Johannes Schindelin'
 inputs:
-  gitgitgadget-git-access-token:
+  pr-repo-token:
     description: 'The access token to work on gitgitgadget/git'
     required: true
-  git-git-access-token:
+  upstream-repo-token:
     description: 'The access token to work on git/git'
     required: true
-  dscho-git-access-token:
+  test-repo-token:
     description: 'The access token to work on dscho/git'
     required: true
 runs:
