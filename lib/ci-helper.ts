@@ -129,18 +129,13 @@ export class CIHelper {
         // set the SMTP options
         try {
             const options = {
-                user: core.getInput("smtp-user"),
-                host: core.getInput("smtp-host"),
-                pass: core.getInput("smtp-pass"),
-                opts: core.getInput("smtp-opts"),
+                smtpUser: core.getInput("smtp-user"),
+                smtpHost: core.getInput("smtp-host"),
+                smtpPass: core.getInput("smtp-pass"),
+                smtpOpts: core.getInput("smtp-opts"),
             };
-            if (options.user && options.host && options.pass) {
-                this.setSMTPOptions({
-                    smtpUser: options.user,
-                    smtpHost: options.host,
-                    smtpPass: options.pass,
-                    smtpOpts: options.opts,
-                });
+            if (options.smtpUser && options.smtpHost && options.smtpPass) {
+                this.setSMTPOptions(options);
             }
         } catch (e) {
             // Ignore, for now
