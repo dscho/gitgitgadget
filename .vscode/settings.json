@@ -97,6 +97,7 @@
         "CIsmtppass",
         "CIsmtpopts",
         "GIT_ASKPASS",
+        "GIT_CONFIG_NOSYSTEM",
         "users\\.noreply\\.github\\.com",
     ],
     "cSpell.language": "en-US",
