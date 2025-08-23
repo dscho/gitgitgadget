@@ -96,6 +96,7 @@
         "CIsmtphost",
         "CIsmtppass",
         "CIsmtpopts",
+        "GIT_ASKPASS",
         "users\\.noreply\\.github\\.com",
     ],
     "cSpell.language": "en-US",
