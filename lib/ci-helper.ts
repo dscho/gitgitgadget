@@ -316,7 +316,7 @@ export class CIHelper {
 
         const [, owner, repo, prNumber] =
             prCommentUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/) || [];
-        if (!this.config.repo.owners.includes(owner) || repo !== "git") {
+        if (!this.config.repo.owners.includes(owner) || repo !== this.config.repo.name) {
             throw new Error(`Invalid PR comment URL: ${prCommentUrl}`);
         }
         return { owner, repo, prNumber: parseInt(prNumber, 10) };
