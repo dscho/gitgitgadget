@@ -249,8 +249,8 @@ export class CIHelper {
         await unshallow(this.workDir);
 
         if (setupOptions?.needsMailingListMirror) {
-            this.mailingListMirror = "git-mailing-list-mirror.git";
-            const epoch = 1;
+            this.mailingListMirror = "mailing-list-mirror.git";
+            const epoch = this.config.mailrepo.public_inbox_epoch ?? 1;
 
             // eslint-disable-next-line security/detect-non-literal-fs-filename
             if (!fs.existsSync(this.mailingListMirror)) {
@@ -259,7 +259,7 @@ export class CIHelper {
 
             // First fetch from GitGitGadget's mirror, which supports partial clones
             for (const [key, value] of [
-                ["remote.mirror.url", `https://github.com/${this.config.repo.owner}/git-mailing-list-mirror`],
+                ["remote.mirror.url", this.config.mailrepo.mirrorURL || this.config.mailrepo.url],
                 ["remote.mirror.promisor", "true"],
                 ["remote.mirror.partialCloneFilter", "blob:none"],
             ]) {
