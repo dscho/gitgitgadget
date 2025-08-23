@@ -122,9 +122,11 @@ export class CIHelper {
             .join(" ");
 
         // get the access tokens via the inputs of the GitHub Action
-        this.setAccessToken("gitgitgadget", core.getInput("pr-repo-token"));
-        this.setAccessToken("git", core.getInput("upstream-repo-token"));
-        this.setAccessToken("dscho", core.getInput("test-repo-token"));
+        this.setAccessToken(this.config.repo.owner, core.getInput("pr-repo-token"));
+        this.setAccessToken(this.config.repo.baseOwner, core.getInput("upstream-repo-token"));
+        if (this.config.repo.testOwner) {
+            this.setAccessToken(this.config.repo.testOwner, core.getInput("test-repo-token"));
+        }
 
         // set the SMTP options
         try {
