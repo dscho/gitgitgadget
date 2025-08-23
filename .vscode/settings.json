@@ -98,6 +98,7 @@
         "CIsmtpopts",
         "GIT_ASKPASS",
         "GIT_CONFIG_NOSYSTEM",
+        "mailrepo",
         "users\\.noreply\\.github\\.com",
     ],
     "cSpell.language": "en-US",
