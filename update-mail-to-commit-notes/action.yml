@@ -3,7 +3,7 @@ description: 'Updates the mapping between commits and patch emails, stored in th
 author: 'Johannes Schindelin'
 inputs:
   pr-repo-token:
-    description: 'The access token to work on gitgitgadget/git'
+    description: 'The access token to work on the repository that holds PRs and state'
     required: true
 runs:
   using: 'node20'
