@@ -23,7 +23,7 @@ update_gitgit_dir () {
 	git clone $git_remote "$GITGIT_DIR" ||
 	die "Could not clone $git_remote to $GITGIT_DIR"
 
-echo	git -C "$GITGIT_DIR" fetch $git_remote \
+	git -C "$GITGIT_DIR" fetch $git_remote \
 		refs/notes/mail-to-commit:refs/notes/mail-to-commit ||
 	die "Could not update notes"
 }
