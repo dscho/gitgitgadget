@@ -68,9 +68,6 @@ update_gitgit_dir () {
 	git -C "$GITGIT_DIR" fetch $git_remote refs/notes/commit-to-mail:refs/notes/commit-to-mail ||
 	die "Could not update refs/notes/commit-to-mail"
 
-	git -C "$GITGIT_DIR" update-ref refs/notes/commit-to-mail de5f0ffd77eabc913e560acb4f3303b6e3df4163
-	git -C "$GITGIT_DIR" update-ref refs/notes/mail-to-commit 92b87ef409b0858d188a371a6af30aa477bc549f
-
 	if git -C "$GITGIT_DIR" rev-parse --verify refs/remotes/upstream/seen >/dev/null 2>&1
 	then
 		# Let's take 'seen' from the official source at git.git.
