@@ -71,6 +71,23 @@ export class CIHelper {
     }
 
     public constructor(workDir: string = "git.git", config?: IConfig, skipUpdate?: boolean, gggConfigDir = ".") {
+        if (process.env.GITGITGADGET_DRY_RUN) {
+            // Avoid letting VS Code's `GIT_ASKPASS` any push succeed
+            Object.keys(process.env).forEach((key) => {
+                if (key.startsWith("GIT_") || key.startsWith("VSCODE_")) {
+                    console.warn(`Deleting environment variable ${key}`);
+                    delete process.env[key];
+                }
+            });
+            process.env.GIT_CONFIG_NOSYSTEM = "1";
+            process.env.GIT_CONFIG_GLOBAL = "does-not-exist";
+
+            // Disable any credential helper
+            process.env.GIT_CONFIG_PARAMETERS = [process.env.GIT_CONFIG_PARAMETERS, "'credential.helper='"]
+                .filter((e) => e)
+                .join(" ");
+        }
+
         this.config = config !== undefined ? setConfig(config) : CIHelper.getConfigAsGitHubActionInput() || getConfig();
         this.gggConfigDir = gggConfigDir;
         this.workDir = workDir;
@@ -98,12 +115,17 @@ export class CIHelper {
             .map((p) => path.normalize(`${p}${path.sep}${gitExecutable}`))
             // eslint-disable-next-line security/detect-non-literal-fs-filename
             .filter((p) => p.endsWith(`${path.sep}${stripSuffix}`) && fs.existsSync(p))) {
+            if (process.env.GITGITGADGET_DRY_RUN) console.error(`Found Git at ${gitPath}`);
             process.env.LOCAL_GIT_DIRECTORY = gitPath.substring(0, gitPath.length - stripSuffix.length);
+            if (process.env.GITGITGADGET_DRY_RUN) {
+                console.error(`Setting LOCAL_GIT_DIRECTORY to ${process.env.LOCAL_GIT_DIRECTORY}`);
+            }
             // need to override GIT_EXEC_PATH, so that Dugite can find the `git-remote-https` executable,
             // see https://github.com/desktop/dugite/blob/v2.7.1/lib/git-environment.ts#L44-L64
             // Also: We cannot use `await git(["--exec-path"]);` because that would use Dugite, which would
             // override `GIT_EXEC_PATH` and then `git --exec-path` would report _that_...
             process.env.GIT_EXEC_PATH = spawnSync("/usr/bin/git", ["--exec-path"]).stdout.toString("utf-8").trimEnd();
+            if (process.env.GITGITGADGET_DRY_RUN) console.error(`GIT_EXEC_PATH: '${process.env.GIT_EXEC_PATH}'`);
             break;
         }
 
@@ -136,6 +158,15 @@ export class CIHelper {
             }
         } catch (e) {
             // Ignore, for now
+        }
+
+        if (!this.smtpOptions && process.env.GITGITGADGET_DRY_RUN) {
+            this.smtpOptions = {
+                smtpUser: "user@example.com",
+                smtpHost: "smtp.example.com",
+                smtpPass: "password",
+            };
+            console.log("Using debug SMTP options:", this.smtpOptions);
         }
 
         // eslint-disable-next-line security/detect-non-literal-fs-filename
