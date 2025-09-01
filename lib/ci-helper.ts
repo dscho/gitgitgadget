@@ -82,6 +82,10 @@ export class CIHelper {
             process.env.GIT_CONFIG_PARAMETERS = [process.env.GIT_CONFIG_PARAMETERS, "'credential.helper='"]
                 .filter((e) => e)
                 .join(" ");
+
+            process.env.GITHUB_ACTIONS = "true";
+console.error(process.cwd());
+            process.env.INPUT_CONFIG = fs.readFileSync("../cygwingadget-config.json", "utf-8");
         }
 
         this.config = config || CIHelper.getConfigAsGitHubActionInput() || defaultConfig;
@@ -341,7 +345,9 @@ export class CIHelper {
     }
 
     public parsePRCommentURLInput(): { owner: string; repo: string; prNumber: number; commentId: number } {
-        const prCommentUrl = core.getInput("pr-comment-url");
+        const prCommentUrl =
+            core.getInput("pr-comment-url") || "https://github.com/cygwingitgadget/cygwin/pull/1#issuecomment-3243205268";
+
         const [, owner, repo, prNumber, commentId] =
             prCommentUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)#issuecomment-(\d+)$/) || [];
         if (!this.config.repo.owners.includes(owner) || repo !== this.config.repo.name) {
