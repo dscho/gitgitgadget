@@ -38,8 +38,8 @@ test("project options", async () => {
             const prMeta = {
                 baseCommit: options2.baseCommit,
                 baseLabel: "upstream/main",
-                headCommit: options2.branchName,
-                headLabel: options2.branchName,
+                headCommit: options2.headCommit,
+                headLabel: options2.headCommit,
                 iteration: 1,
             };
             const x = new X(testConfig, new GitNotes(repo.workDir), {}, options2, prMeta, undefined, 1);

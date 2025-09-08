@@ -5,7 +5,7 @@ export class ProjectOptions {
     public static async get(
         config: IConfig,
         workDir: string,
-        branchName: string,
+        headCommit: string,
         cc: string[],
         baseCommit: string,
         basedOn?: string,
@@ -24,10 +24,10 @@ export class ProjectOptions {
             cc.push("Johannes Sixt <j6t@kdbg.org>");
         }
 
-        return new ProjectOptions(branchName, basedOn, to, cc, midUrlPrefix, workDir, baseCommit);
+        return new ProjectOptions(headCommit, basedOn, to, cc, midUrlPrefix, workDir, baseCommit);
     }
 
-    public readonly branchName: string;
+    public readonly headCommit: string;
     public readonly baseCommit: string;
     public readonly basedOn?: string;
     public readonly workDir: string;
@@ -37,7 +37,7 @@ export class ProjectOptions {
     public readonly midUrlPrefix: string;
 
     protected constructor(
-        branchName: string,
+        headCommit: string,
         basedOn: string | undefined,
         to: string,
         cc: string[],
@@ -45,7 +45,7 @@ export class ProjectOptions {
         workDir: string,
         baseCommit: string,
     ) {
-        this.branchName = branchName;
+        this.headCommit = headCommit;
 
         this.baseCommit = baseCommit;
 
