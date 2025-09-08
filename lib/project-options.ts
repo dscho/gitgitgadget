@@ -22,15 +22,12 @@ export class ProjectOptions {
             for (const user of project.cc) {
                 cc.push(user);
             }
-        } else if ((await revParse(`${baseCommit}:git-gui.sh`, workDir)) !== undefined) {
-            // Git GUI
-            to = "--to=git@vger.kernel.org";
-            cc.push("Johannes Sixt <j6t@kdbg.org>");
-        } else if ((await revParse(`${baseCommit}:git.c`, workDir)) !== undefined) {
-            // Git
-            to = "--to=git@vger.kernel.org";
-            // Do *not* Cc: Junio Hamano by default
-            midUrlPrefix = "https://lore.kernel.org/git/";
+            // Hard-code a check for gitgitgadget/git whether this is a Git GUI PR
+            // and hence needs the Git GUI maintainer to be Cc:ed
+            if (
+                `${config.repo.owner}/${config.repo.name}` === "gitgitgadget/git" &&
+                (await revParse(`${baseCommit}:git-gui.sh`, workDir)) !== undefined
+            ) {
         } else if ((await revParse(`${baseCommit}:winsup`, workDir)) !== undefined) {
             // Cygwin
             to = "--to=cygwin-patches@cygwin.com";

@@ -29,6 +29,14 @@ const defaultConfig: IConfig = {
         smtpUser: "gitgitgadget@gmail.com",
         smtpHost: "smtp.gmail.com",
     },
+    project: {
+        // The Git maintainer specifically requested not to be Cc:ed, see
+        // b2221f4e (Stop Cc:ing the Git maintainer, 2020-01-08) for specifics,
+        // hence no `cc: "Junio Hamano <gister@pobox.com>"`
+        cc: [],
+        to: "git@vger.kernel.org",
+        urlPrefix: "https://lore.kernel.org/git/",
+    },
     app: {
         appID: 12836,
         installationID: 195971,
