@@ -4,8 +4,7 @@ import { isDirectory } from "../lib/fs-util.js";
 import { GitNotes } from "../lib/git-notes.js";
 import { PatchSeries } from "../lib/patch-series.js";
 import { ProjectOptions } from "../lib/project-options.js";
-import { testCreateRepo } from "./test-lib.js";
-import defaultConfig from "../lib/gitgitgadget-config.js";
+import { testCreateRepo, testConfig } from "./test-lib.js";
 
 // This test script might take quite a while to run
 jest.setTimeout(20000);
@@ -24,7 +23,7 @@ test("project options", async () => {
     expect(await repo.commit("C")).not.toEqual("");
 
     const options2 = await ProjectOptions.get(
-        defaultConfig,
+        testConfig,
         repo.workDir,
         "test-project-options",
         ["Nguyễn Thái Ngọc Duy <pclouds@gmail.com>"],
@@ -44,7 +43,7 @@ test("project options", async () => {
                 headLabel: options2.branchName,
                 iteration: 1,
             };
-            const x = new X(defaultConfig, new GitNotes(repo.workDir), {}, options2, prMeta, undefined, 1);
+            const x = new X(testConfig, new GitNotes(repo.workDir), {}, options2, prMeta, undefined, 1);
             const mbox = await x.generateMBox();
             const needle = "=?UTF-8?Q?Nguy=E1=BB=85n_Th=C3=A1i_Ng=E1=BB=8Dc?= Duy";
             expect(mbox).toEqual(expect.stringContaining(needle));
