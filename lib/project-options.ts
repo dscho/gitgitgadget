@@ -19,9 +19,7 @@ export class ProjectOptions {
             const project = config.project as projectInfo;
             to = `--to=${project.to}`;
             midUrlPrefix = project.urlPrefix;
-            for (const user of project.cc) {
-                cc.push(user);
-            }
+            cc.push(...project.cc);
             // Hard-code a check for gitgitgadget/git whether this is a Git GUI PR
             // and hence needs the Git GUI maintainer to be Cc:ed
             if (
