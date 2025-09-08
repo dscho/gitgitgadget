@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-unsafe-regex */
 import addressparser from "nodemailer/lib/addressparser/index.js";
 import mimeFuncs from "nodemailer/lib/mime-funcs/index.js";
-import { commitExists, git, gitConfig, gitShortHash, revListCount, revParse } from "./git.js";
+import { commitExists, git, gitShortHash, revListCount, revParse } from "./git.js";
 import { GitNotes } from "./git-notes.js";
 import { IGitGitGadgetOptions } from "./gitgitgadget.js";
 import { IMailMetadata } from "./mail-metadata.js";
@@ -138,9 +138,7 @@ export class PatchSeries {
             throw new Error(`Cannot find base branch ${basedOn}`);
         }
 
-        const publishToRemote: string | undefined = undefined;
-
-        const project = await ProjectOptions.get(config, workDir, headCommit, cc, baseCommit, basedOn, publishToRemote);
+        const project = await ProjectOptions.get(config, workDir, headCommit, cc, baseCommit, basedOn);
         if (rangeDiff) {
             options.rangeDiff = rangeDiff;
         }
@@ -639,7 +637,7 @@ export class PatchSeries {
         this.metadata.coverLetterMessageId = coverMid;
 
         logger.log("Generating tag message");
-        let tagMessage = PatchSeries.generateTagMessage(
+        const tagMessage = PatchSeries.generateTagMessage(
             mails[0],
             mails.length > 1,
             this.project.midUrlPrefix,
@@ -656,16 +654,6 @@ export class PatchSeries {
         }
 
         this.metadata.latestTag = tagName;
-
-        if (this.project.publishToRemote) {
-            const url = await gitConfig(`remote.${this.project.publishToRemote}.url`, this.project.workDir);
-            if (!url) {
-                throw new Error(`remote ${this.project.publishToRemote} lacks URL`);
-            }
-
-            logger.log("Inserting links");
-            tagMessage = PatchSeries.insertLinks(tagMessage, url, tagName, this.project.basedOn);
-        }
 
         if (this.options.noUpdate) {
             logger.log(
