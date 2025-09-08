@@ -570,9 +570,9 @@ export class PatchSeries {
     ): Promise<IPatchSeriesMetadata | undefined> {
         let globalOptions: IGitGitGadgetOptions | undefined;
         if (this.options.dryRun) {
-            logger.log(`Dry-run ${this.project.branchName} v${this.metadata.iteration}`);
+            logger.log(`Dry-run ${this.project.headCommit} v${this.metadata.iteration}`);
         } else {
-            logger.log(`Submitting ${this.project.branchName} v${this.metadata.iteration}`);
+            logger.log(`Submitting ${this.project.headCommit} v${this.metadata.iteration}`);
             globalOptions = await this.notes.get<IGitGitGadgetOptions>("");
         }
 
@@ -645,7 +645,7 @@ export class PatchSeries {
         );
         let tagName: string | undefined;
         if (!this.metadata.pullRequestURL) {
-            tagName = `${this.project.branchName}-v${this.metadata.iteration}`;
+            tagName = `${this.project.headCommit}-v${this.metadata.iteration}`;
         } else {
             const prKey = getPullRequestKeyFromURL(this.metadata.pullRequestURL);
             const branch = this.metadata.headLabel.replace(/:/g, "/");
@@ -816,7 +816,7 @@ export class PatchSeries {
         }
 
         if (!this.options.dryRun) {
-            const key = this.metadata.pullRequestURL || this.project.branchName;
+            const key = this.metadata.pullRequestURL || this.project.headCommit;
             await this.notes.set(key, this.metadata, true);
         }
 
@@ -847,7 +847,7 @@ export class PatchSeries {
     }
 
     protected async generateMBox(): Promise<string> {
-        const mergeBase = await git(["merge-base", this.project.baseCommit, this.project.branchName], {
+        const mergeBase = await git(["merge-base", this.project.baseCommit, this.project.headCommit], {
             workDir: this.project.workDir,
         });
         const args = [
@@ -874,7 +874,7 @@ export class PatchSeries {
         }
         if (this.patchCount > 1) {
             if (!this.coverLetter) {
-                throw new Error(`Branch ${this.project.branchName} needs a description`);
+                throw new Error(`Branch ${this.project.headCommit} needs a description`);
             }
             args.push("--cover-letter");
         }
@@ -882,7 +882,7 @@ export class PatchSeries {
             args.push("--patience");
         }
 
-        args.push(`${this.project.baseCommit}..${this.project.branchName}`);
+        args.push(`${this.project.baseCommit}..${this.project.headCommit}`);
 
         return await git(args, { workDir: this.project.workDir });
     }
