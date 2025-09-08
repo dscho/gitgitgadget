@@ -29,7 +29,6 @@ test("project options", async () => {
         ["Nguyễn Thái Ngọc Duy <pclouds@gmail.com>"],
         "test-project-options^",
         undefined,
-        undefined,
     );
     expect(options2.workDir).not.toBeUndefined();
     expect(options2.midUrlPrefix).toEqual("https://dummy.com/?mid=");
