@@ -1,7 +1,7 @@
 /* eslint-disable security/detect-unsafe-regex */
 import addressparser from "nodemailer/lib/addressparser/index.js";
 import mimeFuncs from "nodemailer/lib/mime-funcs/index.js";
-import { commitExists, git, gitConfig, gitShortHash, revListCount, revParse } from "./git.js";
+import { commitExists, git, gitShortHash, revListCount, revParse } from "./git.js";
 import { GitNotes } from "./git-notes.js";
 import { IGitGitGadgetOptions } from "./gitgitgadget.js";
 import { IMailMetadata } from "./mail-metadata.js";
@@ -9,7 +9,6 @@ import { md2text } from "./markdown-renderer.js";
 import { IPatchSeriesMetadata } from "./patch-series-metadata.js";
 import { PatchSeriesOptions } from "./patch-series-options.js";
 import { IConfig } from "./project-config.js";
-import { ProjectOptions } from "./project-options.js";
 import { getPullRequestKeyFromURL } from "./pullRequestKey.js";
 
 export interface ILogger {
@@ -138,21 +137,33 @@ export class PatchSeries {
             throw new Error(`Cannot find base branch ${basedOn}`);
         }
 
-        const publishToRemote: string | undefined = undefined;
-
-        const project = await ProjectOptions.get(config, workDir, headCommit, cc, basedOn, publishToRemote, baseCommit);
         if (rangeDiff) {
             options.rangeDiff = rangeDiff;
+        }
+
+        cc.push(...config.project.cc);
+        // Hard-code a check for gitgitgadget/git whether this is a Git GUI PR
+        // and hence needs the Git GUI maintainer to be Cc:ed
+        if (
+            `${config.repo.owner}/${config.repo.name}` === "gitgitgadget/git" &&
+            (await revParse(`${baseCommit}:git-gui.sh`, workDir)) !== undefined
+        ) {
+            // Git GUI
+            cc.push("Johannes Sixt <j6t@kdbg.org>");
         }
 
         return new PatchSeries(
             config,
             notes,
             options,
-            project,
             metadata,
             rangeDiffRanges,
             patchCount,
+            cc,
+            workDir,
+            headCommit,
+            baseCommit,
+            basedOn,
             coverLetter,
             senderName,
         );
@@ -527,9 +538,13 @@ export class PatchSeries {
     public readonly config: IConfig;
     public readonly notes: GitNotes;
     public readonly options: PatchSeriesOptions;
-    public readonly project: ProjectOptions;
     public readonly metadata: IPatchSeriesMetadata;
     public readonly rangeDiff: IRangeDiff | undefined;
+    public readonly cc: string[];
+    public readonly workDir: string;
+    public readonly headCommit: string;
+    public readonly baseCommit: string;
+    public readonly basedOn?: string;
     public readonly coverLetter?: string;
     public readonly senderName?: string;
     public readonly patchCount: number;
@@ -538,19 +553,27 @@ export class PatchSeries {
         config: IConfig,
         notes: GitNotes,
         options: PatchSeriesOptions,
-        project: ProjectOptions,
         metadata: IPatchSeriesMetadata,
         rangeDiff: IRangeDiff | undefined,
         patchCount: number,
+        cc: string[],
+        workDir: string,
+        headCommit: string,
+        baseCommit: string,
+        basedOn?: string,
         coverLetter?: string,
         senderName?: string,
     ) {
         this.config = config;
         this.notes = notes;
         this.options = options;
-        this.project = project;
         this.metadata = metadata;
         this.rangeDiff = rangeDiff;
+        this.cc = cc;
+        this.workDir = workDir;
+        this.headCommit = headCommit;
+        this.baseCommit = baseCommit;
+        this.basedOn = basedOn;
         this.coverLetter = coverLetter;
         this.senderName = senderName;
         this.patchCount = patchCount;
@@ -572,9 +595,9 @@ export class PatchSeries {
     ): Promise<IPatchSeriesMetadata | undefined> {
         let globalOptions: IGitGitGadgetOptions | undefined;
         if (this.options.dryRun) {
-            logger.log(`Dry-run ${this.project.branchName} v${this.metadata.iteration}`);
+            logger.log(`Dry-run ${this.headCommit} v${this.metadata.iteration}`);
         } else {
-            logger.log(`Submitting ${this.project.branchName} v${this.metadata.iteration}`);
+            logger.log(`Submitting ${this.headCommit} v${this.metadata.iteration}`);
             globalOptions = await this.notes.get<IGitGitGadgetOptions>("");
         }
 
@@ -584,7 +607,7 @@ export class PatchSeries {
         PatchSeries.cleanUpHeaders(mails);
 
         const ident = await git(["var", "GIT_AUTHOR_IDENT"], {
-            workDir: this.project.workDir,
+            workDir: this.workDir,
         });
         const match = ident.match(/.*>/);
         const thisAuthor = match && match[0];
@@ -610,62 +633,45 @@ export class PatchSeries {
         const midMatch = mails[0].match(/\nMessage-ID: <(.*)>/i);
         let coverMid = midMatch ? midMatch[1] : undefined;
 
-        if (this.metadata.pullRequestURL) {
-            if (!coverMid) {
-                throw new Error("Could not extract cover letter Message-ID");
-            }
-            const mid = coverMid;
+        if (!coverMid) {
+            throw new Error("Could not extract cover letter Message-ID");
+        }
+        const originalCoverMid = coverMid;
 
-            const tsMatch = coverMid.match(/cover\.([0-9]+)\./);
-            const timeStamp = tsMatch ? tsMatch[1] : `${Date.now()}`;
-            const emailMatch = thisAuthor.match(/<(.*)>/);
-            if (!emailMatch) {
-                throw new Error(`Could not parse email of '${thisAuthor}`);
-            }
-            const email = emailMatch[1];
+        const tsMatch = coverMid.match(/cover\.([0-9]+)\./);
+        const timeStamp = tsMatch ? tsMatch[1] : `${Date.now()}`;
+        const emailMatch = thisAuthor.match(/<(.*)>/);
+        if (!emailMatch) {
+            throw new Error(`Could not parse email of '${thisAuthor}`);
+        }
+        const email = emailMatch[1];
 
-            const prMatch = this.metadata.pullRequestURL.match(/\/([^/]+)\/([^/]+)\/pull\/(\d+)$/);
-            if (prMatch) {
-                const infix = this.metadata.iteration > 1 ? `.v${this.metadata.iteration}` : "";
-                const repoInfix = prMatch[1] === this.config.repo.owner ? prMatch[2] : `${prMatch[1]}.${prMatch[2]}`;
-                const newCoverMid = `pull.${prMatch[3]}${infix}.${repoInfix}.${timeStamp}.${email}`;
-                mails.map((value: string, index: number): void => {
-                    // cheap replace-all
-                    mails[index] = value.split(mid).join(newCoverMid);
-                });
-                coverMid = newCoverMid;
-            }
+        const prMatch = this.metadata.pullRequestURL.match(/\/([^/]+)\/([^/]+)\/pull\/(\d+)$/);
+        if (prMatch) {
+            const infix = this.metadata.iteration > 1 ? `.v${this.metadata.iteration}` : "";
+            const repoInfix = prMatch[1] === this.config.repo.owner ? prMatch[2] : `${prMatch[1]}.${prMatch[2]}`;
+            const newCoverMid = `pull.${prMatch[3]}${infix}.${repoInfix}.${timeStamp}.${email}`;
+            mails.map((value: string, index: number): void => {
+                // cheap replace-all
+                mails[index] = value.split(originalCoverMid).join(newCoverMid);
+            });
+            coverMid = newCoverMid;
         }
         this.metadata.coverLetterMessageId = coverMid;
 
         logger.log("Generating tag message");
-        let tagMessage = PatchSeries.generateTagMessage(
+        const tagMessage = PatchSeries.generateTagMessage(
             mails[0],
             mails.length > 1,
-            this.project.midUrlPrefix,
+            this.config.project.urlPrefix,
             this.metadata.referencesMessageIds,
         );
-        let tagName: string | undefined;
-        if (!this.metadata.pullRequestURL) {
-            tagName = `${this.project.branchName}-v${this.metadata.iteration}`;
-        } else {
-            const prKey = getPullRequestKeyFromURL(this.metadata.pullRequestURL);
-            const branch = this.metadata.headLabel.replace(/:/g, "/");
-            const tagPrefix = prKey.owner === this.config.repo.owner ? "pr-" : `pr-${prKey.owner}-`;
-            tagName = `${tagPrefix}${prKey.pull_number}/${branch}-v${this.metadata.iteration}`;
-        }
+        const prKey = getPullRequestKeyFromURL(this.metadata.pullRequestURL);
+        const branch = this.metadata.headLabel.replace(/:/g, "/");
+        const tagPrefix = prKey.owner === this.config.repo.owner ? "pr-" : `pr-${prKey.owner}-`;
+        const tagName = `${tagPrefix}${prKey.pull_number}/${branch}-v${this.metadata.iteration}`;
 
         this.metadata.latestTag = tagName;
-
-        if (this.project.publishToRemote) {
-            const url = await gitConfig(`remote.${this.project.publishToRemote}.url`, this.project.workDir);
-            if (!url) {
-                throw new Error(`remote ${this.project.publishToRemote} lacks URL`);
-            }
-
-            logger.log("Inserting links");
-            tagMessage = PatchSeries.insertLinks(tagMessage, url, tagName, this.project.basedOn);
-        }
 
         if (this.options.noUpdate) {
             logger.log(
@@ -720,7 +726,7 @@ export class PatchSeries {
                         this.rangeDiff.previousRange,
                         this.rangeDiff.currentRange,
                     ],
-                    { workDir: this.project.workDir },
+                    { workDir: this.workDir },
                 );
                 // split the range-diff and prefix with a space
                 footers.push(
@@ -806,20 +812,20 @@ export class PatchSeries {
                     firstPatchLine,
                 } as IMailMetadata;
                 await this.notes.set(mid, mailMeta, true);
-                if (globalOptions && originalCommit && this.metadata.pullRequestURL) {
+                if (globalOptions && originalCommit) {
                     if (!globalOptions.activeMessageIDs) {
                         globalOptions.activeMessageIDs = {};
                     }
                     globalOptions.activeMessageIDs[mid] = originalCommit;
                 }
 
-                if (originalCommit && (await commitExists(originalCommit, this.project.workDir))) {
+                if (originalCommit && (await commitExists(originalCommit, this.workDir))) {
                     await this.notes.appendCommitNote(originalCommit, mid);
                 }
             }
         }
 
-        if (globalOptions && this.metadata.pullRequestURL) {
+        if (globalOptions) {
             if (!globalOptions.openPRs) {
                 globalOptions.openPRs = {};
             }
@@ -828,7 +834,7 @@ export class PatchSeries {
         }
 
         if (!this.options.dryRun) {
-            const key = this.metadata.pullRequestURL || this.project.branchName;
+            const key = this.metadata.pullRequestURL;
             await this.notes.set(key, this.metadata, true);
         }
 
@@ -859,8 +865,8 @@ export class PatchSeries {
     }
 
     protected async generateMBox(): Promise<string> {
-        const mergeBase = await git(["merge-base", this.project.baseCommit, this.project.branchName], {
-            workDir: this.project.workDir,
+        const mergeBase = await git(["merge-base", this.baseCommit, this.headCommit], {
+            workDir: this.workDir,
         });
         const args = [
             "format-patch",
@@ -870,9 +876,9 @@ export class PatchSeries {
             "--add-header=Fcc: Sent",
             "--base",
             mergeBase,
-            this.project.to,
+            `--to=${this.config.project.to}`,
         ].concat(PatchSeries.generateSingletonHeaders());
-        this.project.cc.map((email) => {
+        this.cc.map((email) => {
             args.push("--cc=" + PatchSeries.encodeSender(email));
         });
         if (this.metadata.referencesMessageIds) {
@@ -886,7 +892,7 @@ export class PatchSeries {
         }
         if (this.patchCount > 1) {
             if (!this.coverLetter) {
-                throw new Error(`Branch ${this.project.branchName} needs a description`);
+                throw new Error(`Branch ${this.headCommit} needs a description`);
             }
             args.push("--cover-letter");
         }
@@ -894,9 +900,9 @@ export class PatchSeries {
             args.push("--patience");
         }
 
-        args.push(`${this.project.baseCommit}..${this.project.branchName}`);
+        args.push(`${this.baseCommit}..${this.headCommit}`);
 
-        return await git(args, { workDir: this.project.workDir });
+        return await git(args, { workDir: this.workDir });
     }
 
     protected async generateTagObject(tagName: string, tagMessage: string): Promise<void> {
@@ -906,10 +912,10 @@ export class PatchSeries {
         }
         args.push(tagName);
         args.push(this.metadata.headCommit);
-        await git(args, { stdin: tagMessage, workDir: this.project.workDir });
+        await git(args, { stdin: tagMessage, workDir: this.workDir });
     }
 
     protected async sendMBox(mbox: string): Promise<void> {
-        await git(["send-mbox"], { stdin: mbox, workDir: this.project.workDir });
+        await git(["send-mbox"], { stdin: mbox, workDir: this.workDir });
     }
 }
