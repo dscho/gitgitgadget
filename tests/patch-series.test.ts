@@ -3,9 +3,7 @@ import { fileURLToPath } from "url";
 import { git } from "../lib/git.js";
 import { GitNotes } from "../lib/git-notes.js";
 import { PatchSeries } from "../lib/patch-series.js";
-import { ProjectOptions } from "../lib/project-options.js";
-import { testCreateRepo } from "./test-lib.js";
-import defaultConfig from "../lib/gitgitgadget-config.js";
+import { testCreateRepo, testConfig } from "./test-lib.js";
 
 jest.setTimeout(60000);
 const sourceFileName = fileURLToPath(import.meta.url);
@@ -88,27 +86,15 @@ class PatchSeriesTest extends PatchSeries {
         const thisAuthor = "GitGitGadget <gitgitgadget@gmail.com>";
         const senderName = "Nguyễn Thái Ngọc Duy";
         const prMeta = {
+            pullRequestURL: "",
             baseCommit: "",
             baseLabel: "",
             headCommit: "",
             headLabel: "",
             iteration: 1,
         };
-        class ProjectOptionsTest extends ProjectOptions {
-            public constructor() {
-                super("", "", "", "", "", [], "", "");
-            }
-        }
 
-        const x = new PatchSeriesTest(
-            defaultConfig,
-            new GitNotes(),
-            {},
-            new ProjectOptionsTest(),
-            prMeta,
-            undefined,
-            1,
-        );
+        const x = new PatchSeriesTest(testConfig, new GitNotes(), {}, prMeta, undefined, 1, [], "", "", "");
 
         x.insertCcAndFromLines(mails, thisAuthor, senderName);
 
