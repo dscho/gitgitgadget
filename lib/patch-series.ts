@@ -140,7 +140,7 @@ export class PatchSeries {
 
         const publishToRemote: string | undefined = undefined;
 
-        const project = await ProjectOptions.get(config, workDir, headCommit, cc, basedOn, publishToRemote, baseCommit);
+        const project = await ProjectOptions.get(config, workDir, headCommit, cc, baseCommit, basedOn, publishToRemote);
         if (rangeDiff) {
             options.rangeDiff = rangeDiff;
         }
