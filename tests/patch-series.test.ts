@@ -87,6 +87,7 @@ class PatchSeriesTest extends PatchSeries {
         const thisAuthor = "GitGitGadget <gitgitgadget@gmail.com>";
         const senderName = "Nguyễn Thái Ngọc Duy";
         const prMeta = {
+            pullRequestURL: "",
             baseCommit: "",
             baseLabel: "",
             headCommit: "",
