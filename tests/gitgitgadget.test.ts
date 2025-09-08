@@ -5,8 +5,7 @@ import { GitNotes } from "../lib/git-notes.js";
 import { GitGitGadget, IGitGitGadgetOptions } from "../lib/gitgitgadget.js";
 import { PatchSeries } from "../lib/patch-series.js";
 import { IPatchSeriesMetadata } from "../lib/patch-series-metadata.js";
-import { testCreateRepo } from "./test-lib.js";
-import defaultConfig from "../lib/gitgitgadget-config.js";
+import { testCreateRepo, testConfig } from "./test-lib.js";
 
 // This test script might take quite a while to run
 jest.setTimeout(60000);
@@ -207,7 +206,7 @@ test("generate tag/notes from a Pull Request", async () => {
     await git(["config", "user.email", "gitgitgadget@example.com"], repo.options);
 
     const patches = await PatchSeries.getFromNotes(
-        defaultConfig,
+        testConfig,
         notes,
         pullRequestURL,
         pullRequestTitle,
@@ -250,7 +249,7 @@ to have included in git.git [https://github.com/git/git].`);
 
     const headCommit2 = await repo.revParse("HEAD");
     const patches2 = await PatchSeries.getFromNotes(
-        defaultConfig,
+        testConfig,
         notes,
         pullRequestURL,
         pullRequestTitle,
@@ -342,7 +341,7 @@ test("allow/disallow", async () => {
     const notes = new GitNotes(remote.workDir);
     await notes.set("", {} as IGitGitGadgetOptions);
 
-    const gitGitGadget = await GitGitGadget.get(defaultConfig, workDir);
+    const gitGitGadget = await GitGitGadget.get(testConfig, workDir);
 
     // pretend that the notes ref had been changed in the meantime
     await notes.set("", { allowedUsers: ["first-one"] } as IGitGitGadgetOptions, true);
@@ -370,7 +369,7 @@ test("allow/disallow with env vars", async () => {
     const notes = new GitNotes(remote.workDir);
     await notes.set("", {} as IGitGitGadgetOptions);
 
-    const gitGitGadget = await GitGitGadget.get(defaultConfig, workDir);
+    const gitGitGadget = await GitGitGadget.get(testConfig, workDir);
 
     // pretend that the notes ref had been changed in the meantime
     await notes.set("", { allowedUsers: ["first-one"] } as IGitGitGadgetOptions, true);
