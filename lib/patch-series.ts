@@ -608,31 +608,29 @@ export class PatchSeries {
         const midMatch = mails[0].match(/\nMessage-ID: <(.*)>/i);
         let coverMid = midMatch ? midMatch[1] : undefined;
 
-        if (this.metadata.pullRequestURL) {
-            if (!coverMid) {
-                throw new Error("Could not extract cover letter Message-ID");
-            }
-            const mid = coverMid;
+        if (!coverMid) {
+            throw new Error("Could not extract cover letter Message-ID");
+        }
+        const originalCoverMid = coverMid;
 
-            const tsMatch = coverMid.match(/cover\.([0-9]+)\./);
-            const timeStamp = tsMatch ? tsMatch[1] : `${Date.now()}`;
-            const emailMatch = thisAuthor.match(/<(.*)>/);
-            if (!emailMatch) {
-                throw new Error(`Could not parse email of '${thisAuthor}`);
-            }
-            const email = emailMatch[1];
+        const tsMatch = coverMid.match(/cover\.([0-9]+)\./);
+        const timeStamp = tsMatch ? tsMatch[1] : `${Date.now()}`;
+        const emailMatch = thisAuthor.match(/<(.*)>/);
+        if (!emailMatch) {
+            throw new Error(`Could not parse email of '${thisAuthor}`);
+        }
+        const email = emailMatch[1];
 
-            const prMatch = this.metadata.pullRequestURL.match(/\/([^/]+)\/([^/]+)\/pull\/(\d+)$/);
-            if (prMatch) {
-                const infix = this.metadata.iteration > 1 ? `.v${this.metadata.iteration}` : "";
-                const repoInfix = prMatch[1] === this.config.repo.owner ? prMatch[2] : `${prMatch[1]}.${prMatch[2]}`;
-                const newCoverMid = `pull.${prMatch[3]}${infix}.${repoInfix}.${timeStamp}.${email}`;
-                mails.map((value: string, index: number): void => {
-                    // cheap replace-all
-                    mails[index] = value.split(mid).join(newCoverMid);
-                });
-                coverMid = newCoverMid;
-            }
+        const prMatch = this.metadata.pullRequestURL.match(/\/([^/]+)\/([^/]+)\/pull\/(\d+)$/);
+        if (prMatch) {
+            const infix = this.metadata.iteration > 1 ? `.v${this.metadata.iteration}` : "";
+            const repoInfix = prMatch[1] === this.config.repo.owner ? prMatch[2] : `${prMatch[1]}.${prMatch[2]}`;
+            const newCoverMid = `pull.${prMatch[3]}${infix}.${repoInfix}.${timeStamp}.${email}`;
+            mails.map((value: string, index: number): void => {
+                // cheap replace-all
+                mails[index] = value.split(originalCoverMid).join(newCoverMid);
+            });
+            coverMid = newCoverMid;
         }
         this.metadata.coverLetterMessageId = coverMid;
 
@@ -643,15 +641,10 @@ export class PatchSeries {
             this.project.midUrlPrefix,
             this.metadata.referencesMessageIds,
         );
-        let tagName: string | undefined;
-        if (!this.metadata.pullRequestURL) {
-            tagName = `${this.project.headCommit}-v${this.metadata.iteration}`;
-        } else {
-            const prKey = getPullRequestKeyFromURL(this.metadata.pullRequestURL);
-            const branch = this.metadata.headLabel.replace(/:/g, "/");
-            const tagPrefix = prKey.owner === this.config.repo.owner ? "pr-" : `pr-${prKey.owner}-`;
-            tagName = `${tagPrefix}${prKey.pull_number}/${branch}-v${this.metadata.iteration}`;
-        }
+        const prKey = getPullRequestKeyFromURL(this.metadata.pullRequestURL);
+        const branch = this.metadata.headLabel.replace(/:/g, "/");
+        const tagPrefix = prKey.owner === this.config.repo.owner ? "pr-" : `pr-${prKey.owner}-`;
+        const tagName = `${tagPrefix}${prKey.pull_number}/${branch}-v${this.metadata.iteration}`;
 
         this.metadata.latestTag = tagName;
 
@@ -794,7 +787,7 @@ export class PatchSeries {
                     firstPatchLine,
                 } as IMailMetadata;
                 await this.notes.set(mid, mailMeta, true);
-                if (globalOptions && originalCommit && this.metadata.pullRequestURL) {
+                if (globalOptions && originalCommit) {
                     if (!globalOptions.activeMessageIDs) {
                         globalOptions.activeMessageIDs = {};
                     }
@@ -807,7 +800,7 @@ export class PatchSeries {
             }
         }
 
-        if (globalOptions && this.metadata.pullRequestURL) {
+        if (globalOptions) {
             if (!globalOptions.openPRs) {
                 globalOptions.openPRs = {};
             }
@@ -816,7 +809,7 @@ export class PatchSeries {
         }
 
         if (!this.options.dryRun) {
-            const key = this.metadata.pullRequestURL || this.project.headCommit;
+            const key = this.metadata.pullRequestURL;
             await this.notes.set(key, this.metadata, true);
         }
 
