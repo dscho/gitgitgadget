@@ -96,7 +96,7 @@ class PatchSeriesTest extends PatchSeries {
         };
         class ProjectOptionsTest extends ProjectOptions {
             public constructor() {
-                super("", "", "", "", "", [], "", "", "");
+                super("", "", "", "", [], "", "", "");
             }
         }
 
