@@ -11,7 +11,6 @@ export const testConfig = {
     ...defaultConfig,
     // We're running in the test suite!
     project: {
-        cc: [],
         ...defaultConfig.project,
         to: "reviewer@example.com",
         urlPrefix: "https://dummy.com/?mid=",
