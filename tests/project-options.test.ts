@@ -36,6 +36,7 @@ test("project options", async () => {
     await class X extends PatchSeries {
         public static async test(): Promise<void> {
             const prMeta = {
+                pullRequestURL: "",
                 baseCommit: options2.baseCommit,
                 baseLabel: "upstream/main",
                 headCommit: options2.headCommit,
