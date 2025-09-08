@@ -1,4 +1,4 @@
-import { commitExists, revParse } from "./git.js";
+import { revParse } from "./git.js";
 import { IConfig, projectInfo } from "./project-config.js";
 
 // For now, only the Git, Cygwin and BusyBox projects are supported
@@ -39,10 +39,6 @@ export class ProjectOptions {
             // BusyBox
             to = "--to=busybox@busybox.net";
             midUrlPrefix = "https://www.mail-archive.com/search?l=busybox@busybox.net&q=";
-        } else if (await commitExists("7ccd18012de2e6c47e5", workDir)) {
-            // We're running in the test suite!
-            to = "--to=reviewer@example.com";
-            midUrlPrefix = "https://dummy.com/?mid=";
         } else {
             throw new Error("Unrecognized project");
         }

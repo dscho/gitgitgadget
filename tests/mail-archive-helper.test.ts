@@ -6,8 +6,7 @@ import { GitNotes } from "../lib/git-notes.js";
 import { GitHubGlue } from "../lib/github-glue.js";
 import { MailArchiveGitHelper, IGitMailingListMirrorState } from "../lib/mail-archive-helper.js";
 import { IMailMetadata } from "../lib/mail-metadata.js";
-import { testCreateRepo } from "./test-lib.js";
-import defaultConfig from "../lib/gitgitgadget-config.js";
+import { testCreateRepo, testConfig } from "./test-lib.js";
 import { IConfig } from "../lib/project-config.js";
 
 /* eslint max-classes-per-file: ["error", 2] */
@@ -97,7 +96,7 @@ interface ICommit {
     parents: [{ sha: string; url: string; html_url?: string }];
 }
 
-const config = { ...defaultConfig }; // make a copy
+const config = { ...testConfig }; // make a copy
 config.repo.owner = "test";
 config.repo.name = "test";
 

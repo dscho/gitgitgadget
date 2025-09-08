@@ -4,7 +4,19 @@ import * as path from "path";
 import { fileURLToPath } from "url";
 import { isDirectory, isFile } from "../lib/fs-util.js";
 import { git, IGitOptions, revParse } from "../lib/git.js";
+import defaultConfig from "../lib/gitgitgadget-config.js";
 const dirName = path.dirname(fileURLToPath(import.meta.url));
+
+export const testConfig = {
+    ...defaultConfig,
+    // We're running in the test suite!
+    project: {
+        cc: [],
+        ...defaultConfig.project,
+        to: "reviewer@example.com",
+        urlPrefix: "https://dummy.com/?mid=",
+    },
+};
 
 export async function removeRecursively(directory: string): Promise<void> {
     if (!(await isDirectory(directory))) {
