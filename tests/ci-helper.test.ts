@@ -5,8 +5,7 @@ import { GitNotes } from "../lib/git-notes.js";
 import { GitHubGlue, IGitHubUser, IPRComment, IPRCommit, IPullRequestInfo } from "../lib/github-glue.js";
 import { IMailMetadata } from "../lib/mail-metadata.js";
 import { testSmtpServer } from "test-smtp-server";
-import { testCreateRepo, TestRepo } from "./test-lib.js";
-import defaultConfig from "../lib/gitgitgadget-config.js";
+import { testCreateRepo, TestRepo, testConfig } from "./test-lib.js";
 
 const sourceFileName = fileURLToPath(import.meta.url);
 
@@ -32,7 +31,7 @@ function testQ(label: string, fn: AsyncFn) {
     });
 }
 
-const config = defaultConfig;
+const config = testConfig;
 
 const eMailOptions = {
     smtpserver: new testSmtpServer(),
@@ -64,6 +63,13 @@ class TestCIHelper extends CIHelper {
         super(workDir, config, debug, gggDir);
         this.testing = true;
         this.ghGlue = this.github;
+
+        this.setSMTPOptions({
+            smtpUser: "joe_user@example.com",
+            smtpHost: "localhost",
+            smtpPass: "secret",
+            smtpOpts: eMailOptions.smtpOpts,
+        });
 
         const commentInfo = { id: 1, url: "ok" };
         // eslint-disable-next-line @typescript-eslint/require-await
@@ -136,15 +142,6 @@ async function setupRepos(instance: string): Promise<{ worktree: TestRepo; gggLo
 
     await worktree.git(["config", `url.${gggRemote.workDir}.insteadOf`, url]);
     await gggLocal.git(["config", `url.${gggRemote.workDir}.insteadOf`, url]);
-
-    // set needed config
-    await worktree.git(["config", "--add", "gitgitgadget.workDir", gggLocal.workDir]);
-    // misc-helper and gitgitgadget use this and ci-helper relies on insteadOf above
-    await worktree.git(["config", "--add", "gitgitgadget.publishRemote", gggRemote.workDir]);
-    await worktree.git(["config", "--add", "gitgitgadget.smtpUser", "joe_user@example.com"]);
-    await worktree.git(["config", "--add", "gitgitgadget.smtpHost", "localhost"]);
-    await worktree.git(["config", "--add", "gitgitgadget.smtpPass", "secret"]);
-    await worktree.git(["config", "--add", "gitgitgadget.smtpOpts", eMailOptions.smtpOpts]);
 
     const notes = new GitNotes(gggRemote.workDir);
     await notes.set("", { allowedUsers: ["ggg", "user1"] }, true);
