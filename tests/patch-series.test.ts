@@ -3,7 +3,6 @@ import { fileURLToPath } from "url";
 import { git } from "../lib/git.js";
 import { GitNotes } from "../lib/git-notes.js";
 import { PatchSeries } from "../lib/patch-series.js";
-import { ProjectOptions } from "../lib/project-options.js";
 import { testCreateRepo, testConfig } from "./test-lib.js";
 
 jest.setTimeout(60000);
@@ -94,21 +93,8 @@ class PatchSeriesTest extends PatchSeries {
             headLabel: "",
             iteration: 1,
         };
-        class ProjectOptionsTest extends ProjectOptions {
-            public constructor() {
-                super("", "", "", [], "", "", "");
-            }
-        }
 
-        const x = new PatchSeriesTest(
-            testConfig,
-            new GitNotes(),
-            {},
-            new ProjectOptionsTest(),
-            prMeta,
-            undefined,
-            1,
-        );
+        const x = new PatchSeriesTest(testConfig, new GitNotes(), {}, prMeta, undefined, 1, [], "", "", "");
 
         x.insertCcAndFromLines(mails, thisAuthor, senderName);
 
