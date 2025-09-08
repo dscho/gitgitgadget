@@ -9,7 +9,6 @@ export class ProjectOptions {
         cc: string[],
         baseCommit: string,
         basedOn?: string,
-        publishToRemote?: string,
     ): Promise<ProjectOptions> {
         const to = `--to=${config.project.to}`;
         const midUrlPrefix = config.project.urlPrefix;
@@ -25,13 +24,12 @@ export class ProjectOptions {
             cc.push("Johannes Sixt <j6t@kdbg.org>");
         }
 
-        return new ProjectOptions(branchName, basedOn, publishToRemote, to, cc, midUrlPrefix, workDir, baseCommit);
+        return new ProjectOptions(branchName, basedOn, to, cc, midUrlPrefix, workDir, baseCommit);
     }
 
     public readonly branchName: string;
     public readonly baseCommit: string;
     public readonly basedOn?: string;
-    public readonly publishToRemote?: string;
     public readonly workDir: string;
 
     public readonly to: string;
@@ -41,7 +39,6 @@ export class ProjectOptions {
     protected constructor(
         branchName: string,
         basedOn: string | undefined,
-        publishToRemote: string | undefined,
         to: string,
         cc: string[],
         midUrlPrefix: string,
@@ -53,7 +50,6 @@ export class ProjectOptions {
         this.baseCommit = baseCommit;
 
         this.basedOn = basedOn;
-        this.publishToRemote = publishToRemote;
         this.workDir = workDir;
 
         this.to = to;
