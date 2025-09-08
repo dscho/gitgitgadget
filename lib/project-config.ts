@@ -1,6 +1,5 @@
 export type projectInfo = {
     to: string; // email to send patches to
-    branch: string; // upstream branch a PR must be based on
     cc: string[]; // emails to always be copied on patches
     urlPrefix: string; // url to 'listserv' of mail (should it be in mailrepo?)
 };
@@ -64,7 +63,7 @@ export interface IConfig {
     repo: IRepoConfig;
     mailrepo: IMailRepoConfig;
     mail: IMailConfig;
-    project?: projectInfo | undefined; // project-options values
+    project: projectInfo; // project-options values
     app: IAppConfig;
     lint: ILintConfig;
     user: IUserConfig;
