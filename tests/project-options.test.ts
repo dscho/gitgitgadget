@@ -28,9 +28,9 @@ test("project options", async () => {
         repo.workDir,
         "test-project-options",
         ["Nguyễn Thái Ngọc Duy <pclouds@gmail.com>"],
-        undefined,
-        undefined,
         "test-project-options^",
+        undefined,
+        undefined,
     );
     expect(options2.workDir).not.toBeUndefined();
     expect(options2.midUrlPrefix).toEqual("https://dummy.com/?mid=");
