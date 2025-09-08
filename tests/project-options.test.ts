@@ -39,7 +39,7 @@ test("project options", async () => {
         public static async test(): Promise<void> {
             const prMeta = {
                 baseCommit: options2.baseCommit,
-                baseLabel: options2.upstreamBranch,
+                baseLabel: "upstream/main",
                 headCommit: options2.branchName,
                 headLabel: options2.branchName,
                 iteration: 1,
