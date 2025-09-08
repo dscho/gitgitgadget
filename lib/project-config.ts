@@ -63,7 +63,7 @@ export interface IConfig {
     repo: IRepoConfig;
     mailrepo: IMailRepoConfig;
     mail: IMailConfig;
-    project?: projectInfo | undefined; // project-options values
+    project: projectInfo; // project-options values
     app: IAppConfig;
     lint: ILintConfig;
     user: IUserConfig;
