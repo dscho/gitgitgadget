@@ -8,9 +8,9 @@ export class ProjectOptions {
         workDir: string,
         branchName: string,
         cc: string[],
+        baseCommit: string,
         basedOn?: string,
         publishToRemote?: string,
-        baseCommit?: string,
     ): Promise<ProjectOptions> {
         let upstreamBranch: string;
         let to: string;
@@ -70,7 +70,7 @@ export class ProjectOptions {
 
         return new ProjectOptions(
             branchName,
-            upstreamBranch,
+            baseCommit,
             basedOn,
             publishToRemote,
             to,
@@ -101,12 +101,12 @@ export class ProjectOptions {
         cc: string[],
         midUrlPrefix: string,
         workDir: string,
-        baseCommit?: string,
+        baseCommit: string,
     ) {
         this.branchName = branchName;
         this.upstreamBranch = upstreamBranch;
 
-        this.baseCommit = baseCommit || upstreamBranch;
+        this.baseCommit = baseCommit;
 
         this.basedOn = basedOn;
         this.publishToRemote = publishToRemote;
