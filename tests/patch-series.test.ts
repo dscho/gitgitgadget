@@ -4,8 +4,7 @@ import { git } from "../lib/git.js";
 import { GitNotes } from "../lib/git-notes.js";
 import { PatchSeries } from "../lib/patch-series.js";
 import { ProjectOptions } from "../lib/project-options.js";
-import { testCreateRepo } from "./test-lib.js";
-import defaultConfig from "../lib/gitgitgadget-config.js";
+import { testCreateRepo, testConfig } from "./test-lib.js";
 
 jest.setTimeout(60000);
 const sourceFileName = fileURLToPath(import.meta.url);
@@ -101,7 +100,7 @@ class PatchSeriesTest extends PatchSeries {
         }
 
         const x = new PatchSeriesTest(
-            defaultConfig,
+            testConfig,
             new GitNotes(),
             {},
             new ProjectOptionsTest(),
