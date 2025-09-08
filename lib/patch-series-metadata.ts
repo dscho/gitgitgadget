@@ -1,5 +1,5 @@
 export interface IPatchSeriesMetadata {
-    readonly pullRequestURL?: string;
+    readonly pullRequestURL: string;
     baseCommit: string;
     baseLabel: string;
     headCommit: string;
