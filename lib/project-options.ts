@@ -1,7 +1,6 @@
 import { revParse } from "./git.js";
-import { IConfig, projectInfo } from "./project-config.js";
+import { IConfig } from "./project-config.js";
 
-// For now, only the Git, Cygwin and BusyBox projects are supported
 export class ProjectOptions {
     public static async get(
         config: IConfig,
@@ -12,30 +11,18 @@ export class ProjectOptions {
         basedOn?: string,
         publishToRemote?: string,
     ): Promise<ProjectOptions> {
-        let to: string;
-        let midUrlPrefix = " Message-ID: ";
+        const to = `--to=${config.project.to}`;
+        const midUrlPrefix = config.project.urlPrefix;
+        cc.push(...config.project.cc);
 
-        if (Object.prototype.hasOwnProperty.call(config, "project")) {
-            const project = config.project as projectInfo;
-            to = `--to=${project.to}`;
-            midUrlPrefix = project.urlPrefix;
-            cc.push(...project.cc);
-            // Hard-code a check for gitgitgadget/git whether this is a Git GUI PR
-            // and hence needs the Git GUI maintainer to be Cc:ed
-            if (
-                `${config.repo.owner}/${config.repo.name}` === "gitgitgadget/git" &&
-                (await revParse(`${baseCommit}:git-gui.sh`, workDir)) !== undefined
-            ) {
-        } else if ((await revParse(`${baseCommit}:winsup`, workDir)) !== undefined) {
-            // Cygwin
-            to = "--to=cygwin-patches@cygwin.com";
-            midUrlPrefix = "https://www.mail-archive.com/search?l=cygwin-patches@cygwin.com&q=";
-        } else if ((await revParse(`${baseCommit}:include/busybox.h`, workDir)) !== undefined) {
-            // BusyBox
-            to = "--to=busybox@busybox.net";
-            midUrlPrefix = "https://www.mail-archive.com/search?l=busybox@busybox.net&q=";
-        } else {
-            throw new Error("Unrecognized project");
+        // Hard-code a check for gitgitgadget/git whether this is a Git GUI PR
+        // and hence needs the Git GUI maintainer to be Cc:ed
+        if (
+            `${config.repo.owner}/${config.repo.name}` === "gitgitgadget/git" &&
+            (await revParse(`${baseCommit}:git-gui.sh`, workDir)) !== undefined
+        ) {
+            // Git GUI
+            cc.push("Johannes Sixt <j6t@kdbg.org>");
         }
 
         return new ProjectOptions(branchName, basedOn, publishToRemote, to, cc, midUrlPrefix, workDir, baseCommit);
