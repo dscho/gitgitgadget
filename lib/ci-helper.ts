@@ -20,7 +20,6 @@ import { IConfig } from "./project-config.js";
 import { getPullRequestKeyFromURL, pullRequestKey } from "./pullRequestKey.js";
 import { ISMTPOptions } from "./send-mail.js";
 import { fileURLToPath } from "url";
-import defaultConfig from "./gitgitgadget-config.js";
 
 const readFile = util.promisify(fs.readFile);
 type CommentFunction = (comment: string) => Promise<void>;
@@ -52,11 +51,12 @@ export class CIHelper {
 
     public static validateConfig = typia.createValidate<IConfig>();
 
-    public static getConfigAsGitHubActionInput(): IConfig | undefined {
-        if (process.env.GITHUB_ACTIONS !== "true") return undefined;
+    public static getConfigAsGitHubActionInput(): IConfig {
+        if (process.env.GITHUB_ACTIONS !== "true") throw new Error(`Need a config!`);
         const json = core.getInput("config");
-        if (!json) return undefined;
+        if (!json) throw new Error(`Need a config!`);
         const config = JSON.parse(json) as IConfig | undefined;
+        if (!config) throw new Error(`Need a config!`);
         const result = CIHelper.validateConfig(config);
         if (result.success) return config;
         throw new Error(
@@ -67,7 +67,7 @@ export class CIHelper {
     }
 
     public constructor(workDir: string = "pr-repo.git", config?: IConfig, skipUpdate?: boolean, gggConfigDir = ".") {
-        this.config = config || CIHelper.getConfigAsGitHubActionInput() || defaultConfig;
+        this.config = config || CIHelper.getConfigAsGitHubActionInput();
         this.gggConfigDir = gggConfigDir;
         this.workDir = workDir;
         this.notes = new GitNotes(workDir);
