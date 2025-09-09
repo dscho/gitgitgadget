@@ -4,7 +4,7 @@ author: 'Johannes Schindelin'
 inputs:
   config:
     description: 'The GitGitGadget configuration to use (see https://github.com/gitgitgadget/gitgitgadget/blob/HEAD/lib/project-config.ts)'
-    required: false # not just yet...
+    default: ${{ vars.CONFIG }}
   pr-repo-token:
     description: 'The access token to work on the repository that holds PRs and state'
     required: true
