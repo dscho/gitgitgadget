@@ -21,5 +21,8 @@ jobs:
         with:
           config: ${{ env.CONFIG }}
           pr-url: https://github.com/cygwingitgadget/cygwin/pull/1
+          name: name
+          title: title
+          summary: summary
       - name: Do${{ matrix.fail == 'false' && ' not' || '' }} fail
         run: set -x && exit ${{ matrix.fail == 'false' && '0' || '1' }}
