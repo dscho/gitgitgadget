@@ -20,5 +20,6 @@ jobs:
       - uses: ./check-run
         with:
           config: ${{ env.CONFIG }}
+          pr-url: https://github.com/cygwingitgadget/cygwin/pull/1
       - name: Do${{ matrix.fail == 'false' && ' not' || '' }} fail
         run: set -x && exit ${{ matrix.fail == 'false' && '0' || '1' }}
