@@ -116,7 +116,7 @@ export class CIHelper {
         needsUpstreamBranches?: boolean;
         needsMailToCommitNotes?: boolean;
         createGitNotes?: boolean;
-        createOrUpdateCheckRun?: boolean;
+        createOrUpdateCheckRun?: boolean | "post";
     }): Promise<void> {
         // configure the Git committer information
         process.env.GIT_CONFIG_PARAMETERS = [
@@ -158,7 +158,9 @@ export class CIHelper {
             console.log("Using debug SMTP options:", this.smtpOptions);
         }
 
-        if (setupOptions?.createOrUpdateCheckRun) return await this.createOrUpdateCheckRun();
+        if (setupOptions?.createOrUpdateCheckRun) {
+            return await this.createOrUpdateCheckRun(setupOptions.createOrUpdateCheckRun === "post");
+        }
 
         // help dugite realize where `git` is...
         const gitExecutable = os.type() === "Windows_NT" ? "git.exe" : "git";
@@ -358,7 +360,16 @@ export class CIHelper {
 
     protected static validateConclusion = typia.createValidate<ConclusionType>();
 
-    protected async createOrUpdateCheckRun(): Promise<void> {
+    protected async createOrUpdateCheckRun(runPost: boolean): Promise<void> {
+        if (process.env.GITGITGADGET_DRY_RUN) {
+            if (!runPost) {
+                core.saveState("check-run-id", "123456");
+            } else {
+                console.log(`saved state: ${core.getState("check-run-id")}`);
+            }
+            console.log(JSON.stringify(process.env, null, 2));
+            return;
+        }
         const { owner, repo, pull_number } = getPullRequestOrCommentKeyFromURL(core.getInput("pr-url"));
         let check_run_id = ((id?: string) => (!id ? undefined : Number.parseInt(id, 10)))(
             core.getInput("check-run-id"),
