@@ -565,7 +565,7 @@ export class GitHubGlue {
         };
         detailsURL?: string;
         conclusion?: ConclusionType;
-}): Promise<{ id: number }> {
+    }): Promise<{ id: number }> {
         if (process.env.GITGITGADGET_DRY_RUN) {
             console.log(`Would create Check Run with options ${JSON.stringify(options, null, 2)}`);
             return { id: -1 }; // debug mode does not actually do anything
