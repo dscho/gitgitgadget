@@ -13,7 +13,7 @@ jobs:
       - name: Obtain config
         run: |
           CONFIG="$(curl -L https://github.com/cygwingitgadget/gitgitgadget-workflows/raw/config/gitgitgadget-config.json)" &&
-          printf 'CONFIG=<<<EOF\n%s\nEOF\n' "$CONFIG" >>$GITHUB_ENV
+          printf 'CONFIG=<<EOF\n%s\nEOF\n' "$CONFIG" >>$GITHUB_ENV
       - uses: actions/checkout@v5
       - uses: ./check-run
         with:
