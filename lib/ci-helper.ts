@@ -414,7 +414,7 @@ export class CIHelper {
                     : undefined,
                 detailsURL,
                 conclusion: conclusion as ConclusionType | undefined,
-            })
+            });
         }
     }
 
