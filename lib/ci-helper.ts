@@ -10,7 +10,15 @@ import { ILintError, LintCommit } from "./commit-lint.js";
 import { commitExists, git, emptyTreeName, revParse } from "./git.js";
 import { GitNotes } from "./git-notes.js";
 import { GitGitGadget, IGitGitGadgetOptions } from "./gitgitgadget.js";
-import { ConclusionType, GitHubGlue, IGitHubUser, IPRComment, IPRCommit, IPullRequestInfo, RequestError } from "./github-glue.js";
+import {
+    ConclusionType,
+    GitHubGlue,
+    IGitHubUser,
+    IPRComment,
+    IPRCommit,
+    IPullRequestInfo,
+    RequestError,
+} from "./github-glue.js";
 import { toPrettyJSON } from "./json-util.js";
 import { MailArchiveGitHelper } from "./mail-archive-helper.js";
 import { MailCommitMapping } from "./mail-commit-mapping.js";
