@@ -2,6 +2,9 @@ name: Test
 on:
   push:
 
+env:
+  GITGITGADGET_DRY_RUN: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
