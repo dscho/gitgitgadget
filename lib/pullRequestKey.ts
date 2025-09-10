@@ -24,7 +24,7 @@ export function getPullRequestOrCommentKeyFromURL(
     if (!match) {
         throw new Error(`Unrecognized PR URL: "${pullRequestOrCommentURL}`);
     }
-    const match2 = match[4]?.match(/^#issuecomment-(\d+)$/)
+    const match2 = match[4]?.match(/^#issuecomment-(\d+)$/);
     if (match[4] && !match2) {
         throw new Error(`Unrecognized PR URL: "${pullRequestOrCommentURL}`);
     }
