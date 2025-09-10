@@ -377,7 +377,7 @@ export class CIHelper {
             if (!summary) problems.push(`summary is required`);
             if (conclusion) {
                 const result = CIHelper.validateConclusion(conclusion);
-                if (!result.success) problems.push(result.errors)
+                if (!result.success) problems.push(result.errors);
             }
             if (problems.length) throw new Error(`Could not create Check Run:${JSON.stringify(problems, null, 2)}`);
 
