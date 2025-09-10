@@ -398,7 +398,7 @@ export class CIHelper {
         } else {
             const problems = [];
             if (name) problems.push(`Specify either check-run-id or name but not both`);
-            if (!summary && (title || text)) problems.push(`title or text require a summary`)
+            if (!summary && (title || text)) problems.push(`title or text require a summary`);
             if (problems.length) throw new Error(`Could not create Check Run:${JSON.stringify(problems, null, 2)}`);
 
             await this.github.updateCheckRun({
