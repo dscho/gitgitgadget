@@ -10,7 +10,13 @@ jobs:
       matrix:
         fail: ['true', 'false']
     steps:
+      - name: Obtain config
+        run: |
+          CONFIG="$(curl -L https://github.com/cygwingitgadget/gitgitgadget-workflows/raw/config/gitgitgadget-config.json)" &&
+          printf 'CONFIG=<<<EOF\n%s\nEOF\n' "$CONFIG" >>$GITHUB_ENV
       - uses: actions/checkout@v5
       - uses: ./check-run
+        with:
+          config: ${{ env.CONFIG }}
       - name: Do${{ matrix.fail == 'false' && ' not' || '' }} fail
         run: set -x && exit ${{ matrix.fail == 'false' && '0' || '1' }}
