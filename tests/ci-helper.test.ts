@@ -64,6 +64,13 @@ class TestCIHelper extends CIHelper {
         this.testing = true;
         this.ghGlue = this.github;
 
+        this.setSMTPOptions({
+            smtpUser: "joe_user@example.com",
+            smtpHost: "localhost",
+            smtpPass: "secret",
+            smtpOpts: eMailOptions.smtpOpts,
+        });
+
         const commentInfo = { id: 1, url: "ok" };
         // eslint-disable-next-line @typescript-eslint/require-await
         const addPRComment = jest.fn(async (): Promise<{ id: number; url: string }> => commentInfo);
