@@ -11,14 +11,27 @@ import { commitExists, git, emptyTreeName, revParse } from "./git.js";
 import { GitNotes } from "./git-notes.js";
 import { GitGitGadget, IGitGitGadgetOptions } from "./gitgitgadget.js";
 import { getConfig } from "./gitgitgadget-config.js";
-import { GitHubGlue, IGitHubUser, IPRComment, IPRCommit, IPullRequestInfo, RequestError } from "./github-glue.js";
+import {
+    ConclusionType,
+    GitHubGlue,
+    IGitHubUser,
+    IPRComment,
+    IPRCommit,
+    IPullRequestInfo,
+    RequestError,
+} from "./github-glue.js";
 import { toPrettyJSON } from "./json-util.js";
 import { MailArchiveGitHelper } from "./mail-archive-helper.js";
 import { MailCommitMapping } from "./mail-commit-mapping.js";
 import { IMailMetadata } from "./mail-metadata.js";
 import { IPatchSeriesMetadata } from "./patch-series-metadata.js";
 import { IConfig, getExternalConfig, setConfig } from "./project-config.js";
-import { getPullRequestKeyFromURL, pullRequestKey } from "./pullRequestKey.js";
+import {
+    getPullRequestCommentKeyFromURL,
+    getPullRequestKeyFromURL,
+    getPullRequestOrCommentKeyFromURL,
+    pullRequestKey,
+} from "./pullRequestKey.js";
 import { ISMTPOptions } from "./send-mail.js";
 import { fileURLToPath } from "url";
 
@@ -89,24 +102,8 @@ export class CIHelper {
         needsMailingListMirror?: boolean;
         needsUpstreamBranches?: boolean;
         needsMailToCommitNotes?: boolean;
+        createOrUpdateCheckRun?: boolean | "post";
     }): Promise<void> {
-        // help dugite realize where `git` is...
-        const gitExecutable = os.type() === "Windows_NT" ? "git.exe" : "git";
-        const stripSuffix = `bin${path.sep}${gitExecutable}`;
-        for (const gitPath of (process.env.PATH || "/")
-            .split(path.delimiter)
-            .map((p) => path.normalize(`${p}${path.sep}${gitExecutable}`))
-            // eslint-disable-next-line security/detect-non-literal-fs-filename
-            .filter((p) => p.endsWith(`${path.sep}${stripSuffix}`) && fs.existsSync(p))) {
-            process.env.LOCAL_GIT_DIRECTORY = gitPath.substring(0, gitPath.length - stripSuffix.length);
-            // need to override GIT_EXEC_PATH, so that Dugite can find the `git-remote-https` executable,
-            // see https://github.com/desktop/dugite/blob/v2.7.1/lib/git-environment.ts#L44-L64
-            // Also: We cannot use `await git(["--exec-path"]);` because that would use Dugite, which would
-            // override `GIT_EXEC_PATH` and then `git --exec-path` would report _that_...
-            process.env.GIT_EXEC_PATH = spawnSync(gitPath, ["--exec-path"]).stdout.toString("utf-8").trimEnd();
-            break;
-        }
-
         // configure the Git committer information
         process.env.GIT_CONFIG_PARAMETERS = [
             process.env.GIT_CONFIG_PARAMETERS,
@@ -136,6 +133,27 @@ export class CIHelper {
             }
         } catch (e) {
             // Ignore, for now
+        }
+
+        if (setupOptions?.createOrUpdateCheckRun) {
+            return await this.createOrUpdateCheckRun(setupOptions.createOrUpdateCheckRun === "post");
+        }
+
+        // help dugite realize where `git` is...
+        const gitExecutable = os.type() === "Windows_NT" ? "git.exe" : "git";
+        const stripSuffix = `bin${path.sep}${gitExecutable}`;
+        for (const gitPath of (process.env.PATH || "/")
+            .split(path.delimiter)
+            .map((p) => path.normalize(`${p}${path.sep}${gitExecutable}`))
+            // eslint-disable-next-line security/detect-non-literal-fs-filename
+            .filter((p) => p.endsWith(`${path.sep}${stripSuffix}`) && fs.existsSync(p))) {
+            process.env.LOCAL_GIT_DIRECTORY = gitPath.substring(0, gitPath.length - stripSuffix.length);
+            // need to override GIT_EXEC_PATH, so that Dugite can find the `git-remote-https` executable,
+            // see https://github.com/desktop/dugite/blob/v2.7.1/lib/git-environment.ts#L44-L64
+            // Also: We cannot use `await git(["--exec-path"]);` because that would use Dugite, which would
+            // override `GIT_EXEC_PATH` and then `git --exec-path` would report _that_...
+            process.env.GIT_EXEC_PATH = spawnSync(gitPath, ["--exec-path"]).stdout.toString("utf-8").trimEnd();
+            break;
         }
 
         // eslint-disable-next-line security/detect-non-literal-fs-filename
@@ -269,24 +287,79 @@ export class CIHelper {
         }
     }
 
-    public parsePRCommentURLInput(): { owner: string; repo: string; prNumber: number; commentId: number } {
-        const prCommentUrl = core.getInput("pr-comment-url");
-        const [, owner, repo, prNumber, commentId] =
-            prCommentUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)#issuecomment-(\d+)$/) || [];
-        if (!this.config.app.installedOn.includes(owner) || repo !== this.config.repo.name) {
-            throw new Error(`Invalid PR comment URL: ${prCommentUrl}`);
+    protected async createOrUpdateCheckRun(runPost: boolean): Promise<void> {
+        type CheckRunParameters = {
+            owner: string;
+            repo: string;
+            pull_number: number;
+            check_run_id?: number;
+            name: string;
+            output?: {
+                title: string;
+                summary: string;
+                text?: string;
+            };
+            details_url?: string;
+            conclusion?: ConclusionType;
+            job_status?: ConclusionType;
+        };
+        const params = JSON.parse(core.getState("check-run") || "{}") as CheckRunParameters;
+
+        const validateCheckRunParameters = () => {
+            const result = typia.createValidate<CheckRunParameters>()(params);
+            if (!result.success) {
+                throw new Error(
+                    `Invalid check-run state:\n- ${result.errors
+                        .map((e) => `${e.path} (value: ${e.value}, expected: ${e.expected}): ${e.description}`)
+                        .join("\n- ")}`,
+                );
+            }
+        };
+        if (Object.keys(params).length) validateCheckRunParameters();
+
+        ["pr-url", "check-run-id", "name", "title", "summary", "text", "details-url", "conclusion", "job-status"]
+            .map((name) => [name.replaceAll("-", "_"), core.getInput(name)] as const)
+            .forEach(([key, value]) => {
+                if (!value) return;
+                if (key === "pr_url") Object.assign(params, getPullRequestOrCommentKeyFromURL(value));
+                else if (key === "check_run_id") params.check_run_id = Number.parseInt(value, 10);
+                else if (key === "title" || key === "summary" || key === "text") {
+                    if (!params.output) Object.assign(params, { output: {} });
+                    (params.output as { [key: string]: string })[key] = value;
+                } else (params as unknown as { [key: string]: string })[key] = value;
+            });
+        validateCheckRunParameters();
+
+        if (runPost) {
+            if (!params.check_run_id) {
+                core.info("No Check Run ID found in state; doing nothing");
+                return;
+            }
+            if (!params.conclusion) {
+                Object.assign(params, { conclusion: params.job_status });
+                validateCheckRunParameters();
+            }
         }
-        return { owner, repo, prNumber: parseInt(prNumber, 10), commentId: parseInt(commentId, 10) };
+
+        if (params.check_run_id === undefined) {
+            ({ id: params.check_run_id } = await this.github.createCheckRun(params));
+            core.setOutput("check-run-id", params.check_run_id);
+        } else {
+            await this.github.updateCheckRun({
+                ...params,
+                // needed to pacify TypeScript's concerns about the ID being potentially undefined
+                check_run_id: params.check_run_id,
+            });
+        }
+        core.exportVariable("STATE_check-run", JSON.stringify(params));
     }
 
-    public parsePRURLInput(): { owner: string; repo: string; prNumber: number } {
-        const prUrl = core.getInput("pr-url");
+    public parsePRCommentURLInput(): { owner: string; repo: string; pull_number: number; comment_id: number } {
+        return getPullRequestCommentKeyFromURL(core.getInput("pr-comment-url"));
+    }
 
-        const [, owner, repo, prNumber] = prUrl.match(/^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/) || [];
-        if (!this.config.app.installedOn.includes(owner) || repo !== this.config.repo.name) {
-            throw new Error(`Invalid PR URL: ${prUrl}`);
-        }
-        return { owner, repo, prNumber: parseInt(prNumber, 10) };
+    public parsePRURLInput(): { owner: string; repo: string; pull_number: number } {
+        return getPullRequestKeyFromURL(core.getInput("pr-url"));
     }
 
     public setAccessToken(repositoryOwner: string, token: string): void {
