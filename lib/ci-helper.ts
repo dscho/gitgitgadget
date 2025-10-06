@@ -1038,7 +1038,7 @@ export class CIHelper {
         if (result) {
             const results = await Promise.all(
                 commits.map((commit: IPRCommit) => {
-                    const linter = new LintCommit(commit);
+                    const linter = new LintCommit(commit, this.config.lint.commitLintOptions);
                     return linter.lint();
                 }),
             );
