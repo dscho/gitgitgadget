@@ -1,5 +1,5 @@
-name: 'Create or update a check-run'
-description: 'Mirrors a workflow-run into a Pull Request in a different repository'
+name: 'Create or update a Check Run'
+description: 'Mirrors a workflow run to a Check Run of a Pull Request in a different repository'
 author: 'Johannes Schindelin'
 inputs:
   config:
