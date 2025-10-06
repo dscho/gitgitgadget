@@ -433,7 +433,7 @@ export class CIHelper {
     }
 
     public parsePRURLInput(): { owner: string; repo: string; pull_number: number } {
-        return getPullRequestCommentKeyFromURL(core.getInput("pr-url"));
+        return getPullRequestKeyFromURL(core.getInput("pr-url"));
     }
 
     public setAccessToken(repositoryOwner: string, token: string): void {
