@@ -1,22 +1,22 @@
-name: 'Create or update a check-run'
-description: 'Mirrors a workflow-run into a Pull Request in a different repository'
+name: 'Create or update a Check Run'
+description: 'Mirrors a workflow run to a Check Run of a Pull Request in a different repository'
 author: 'Johannes Schindelin'
 inputs:
   config:
     description: 'The GitGitGadget configuration to use (see https://github.com/gitgitgadget/gitgitgadget/blob/HEAD/lib/project-config.ts)'
-    default: ${{ vars.CONFIG }}
+    default: '' # sadly, ${{ vars.CONFIG }} does not work, and documentation about what contexts are permissible here is sorely missing
   pr-repo-token:
     description: 'The access token to work on the repository that holds PRs and state'
     required: true
   upstream-repo-token:
     description: 'The access token to work on PRs in the upstream repository'
-    required: true
+    required: false
   test-repo-token:
     description: 'The access token to work on PRs in the test repository'
-    required: true
+    required: false
   pr-url:
     description: 'The URL of the Pull Request (or Pull Request comment)'
-    required: true
+    required: false
   check-run-id:
     description: 'The Check Run to update (if empty, a new one will be created)'
     default: ''
@@ -34,16 +34,20 @@ inputs:
     default: ''
   details-url:
     description: 'The details URL of the Check Run (required when creating a new one)'
-    default: ''
+    default: '${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
   conclusion:
     description: 'If set, the Check Run will be marked as completed'
     default: ''
+  job-status:
+    description: 'Needed at the end of the job'
+    default: ${{ job.status }}
 outputs:
   check-run-id:
     description: 'The ID of the created or updated Check Run'
 runs:
   using: 'node20'
   main: './index.js'
+  post: './post.js'
 branding:
   icon: 'git-commit'
   color: 'orange'
